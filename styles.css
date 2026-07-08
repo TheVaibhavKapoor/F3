@@ -16,6 +16,7 @@
   --color-ink-border: #1c2541;
 
   --color-lime-accent: #c7f22d;
+  --color-accent-lime: #c7f22d; /* alias for consistency */
   --color-lime-hover: #b5ec18;
   --color-lime-light: #f7ffd6;
 
