@@ -1481,8 +1481,12 @@ window.openDrillIn = function(categoryId, index) {
   drawerBody.innerHTML = html;
   
   // Show drawer
-  drawerOverlay.classList.add('active');
-  drawer.classList.add('active');
+  drawerOverlay.style.display = 'block';
+  drawer.style.display = 'flex';
+  setTimeout(() => {
+    drawerOverlay.classList.add('active');
+    drawer.classList.add('active');
+  }, 10);
 };
 
 function calculateTopThreeDetailsFD() {
@@ -1667,16 +1671,32 @@ window.openComparisonTable = function(categoryId) {
   compareBody.innerHTML = html;
   
   // Show comparison Modal
-  compareOverlay.classList.add('active');
-  compareModal.classList.add('active');
+  compareOverlay.style.display = 'block';
+  compareModal.style.display = 'flex';
+  setTimeout(() => {
+    compareOverlay.classList.add('active');
+    compareModal.classList.add('active');
+  }, 10);
 };
 
 // 10. CLOSING CONTROLS FOR DRAWERS & MODALS
 function closeDrawers() {
-  document.getElementById('drawer-overlay').classList.remove('active');
-  document.getElementById('drawer').classList.remove('active');
-  document.getElementById('compare-overlay').classList.remove('active');
-  document.getElementById('compare-modal').classList.remove('active');
+  const drawerOverlay = document.getElementById('drawer-overlay');
+  const drawer = document.getElementById('drawer');
+  const compareOverlay = document.getElementById('compare-overlay');
+  const compareModal = document.getElementById('compare-modal');
+
+  drawerOverlay.classList.remove('active');
+  drawer.classList.remove('active');
+  compareOverlay.classList.remove('active');
+  compareModal.classList.remove('active');
+
+  setTimeout(() => {
+    drawerOverlay.style.display = 'none';
+    drawer.style.display = 'none';
+    compareOverlay.style.display = 'none';
+    compareModal.style.display = 'none';
+  }, 300);
 }
 
 // 11. BOOTSTRAP INITIALIZATION

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>F³ (F3) — Faster Financial Facilitation</title>
   <meta name="description" content="Answer a few questions, get the three best options across deposits, mutual funds, bonds, loans, and insurance. Financial facilitation without spreadsheets.">
-  <link rel="stylesheet" href="styles.css?v=1.0.3">
+  <link rel="stylesheet" href="styles.css?v=1.0.4">
 </head>
 <body>
   <div class="app-container">
@@ -53,8 +53,8 @@
   </div>
 
   <!-- Sliding Drawer Overlay for Drill-ins -->
-  <div id="drawer-overlay" class="drawer-overlay"></div>
-  <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div id="drawer-overlay" class="drawer-overlay" style="display: none;"></div>
+  <div id="drawer" class="drawer" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
     <div class="drawer-header">
       <h2 id="drawer-title">Details & Analytics</h2>
       <button class="close-btn" id="drawer-close" aria-label="Close details">
@@ -67,8 +67,8 @@
   </div>
 
   <!-- Comparison Modal -->
-  <div id="compare-overlay" class="drawer-overlay"></div>
-  <div id="compare-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+  <div id="compare-overlay" class="drawer-overlay" style="display: none;"></div>
+  <div id="compare-modal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="compare-title">
     <div class="drawer-header">
       <h2 id="compare-title">Comparison Chart (All Options)</h2>
       <button class="close-btn" id="compare-close" aria-label="Close comparison">
@@ -81,7 +81,7 @@
   </div>
 
   <!-- App Logic Scripts -->
-  <script src="data.js?v=1.0.3"></script>
-  <script src="app.js?v=1.0.3"></script>
+  <script src="data.js?v=1.0.4"></script>
+  <script src="app.js?v=1.0.4"></script>
 </body>
 </html>
