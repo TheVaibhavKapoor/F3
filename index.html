@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F³ (F3) — Faster Financial Facilitation</title>
+  <meta name="description" content="Answer a few questions, get the three best options across deposits, mutual funds, bonds, loans, and insurance. Financial facilitation without spreadsheets.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <h1 class="brand-title">F<span class="monogram"><sup>3</sup></span> Financial</h1>
+        <p class="brand-subtitle">Faster Financial Facilitation &bull; Three steps to the best options</p>
+      </div>
+      
+      <!-- Global pre-fills indicator -->
+      <div id="prefill-status" class="global-badge" style="display: none;">
+        <span class="dot"></span>
+        <span id="prefill-status-text">Learning as you go</span>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="tabs-navigation" aria-label="Main financial categories">
+      <button class="tab-btn active" data-tab="invest" id="tab-invest">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Invest
+      </button>
+      <button class="tab-btn" data-tab="expenses" id="tab-expenses">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        Expenses
+      </button>
+      <button class="tab-btn" data-tab="loans" id="tab-loans">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+        Loans
+      </button>
+      <button class="tab-btn" data-tab="security" id="tab-security">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Security
+      </button>
+    </nav>
+
+    <!-- Dynamic Content Area -->
+    <main id="app-content">
+      <!-- Content will be injected dynamically by app.js -->
+      <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
+        <p>Loading Faster Financial Facilitation...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sliding Drawer Overlay for Drill-ins -->
+  <div id="drawer-overlay" class="drawer-overlay"></div>
+  <div id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-header">
+      <h2 id="drawer-title">Details & Analytics</h2>
+      <button class="close-btn" id="drawer-close" aria-label="Close details">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-content" id="drawer-body">
+      <!-- Drill-in analytics injected here -->
+    </div>
+  </div>
+
+  <!-- Comparison Modal -->
+  <div id="compare-overlay" class="drawer-overlay"></div>
+  <div id="compare-modal" class="drawer" style="left: 0; right: 0; margin: auto; max-width: 800px; height: 90vh; border-radius: var(--radius-lg);" role="dialog" aria-modal="true" aria-labelledby="compare-title">
+    <div class="drawer-header">
+      <h2 id="compare-title">Comparison Chart (All Options)</h2>
+      <button class="close-btn" id="compare-close" aria-label="Close comparison">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-content" id="compare-body" style="padding: 16px 24px;">
+      <!-- Detailed comparisons table injected here -->
+    </div>
+  </div>
+
+  <!-- App Logic Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
