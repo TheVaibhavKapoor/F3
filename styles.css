@@ -836,6 +836,33 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-family: var(--font-mono);
 }
 
+/* Centered Modals */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: 90%;
+  max-width: 800px;
+  height: 85vh;
+  background-color: var(--color-paper-card);
+  border: 2px solid var(--color-ink-primary);
+  border-radius: var(--radius-lg);
+  z-index: 101;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -866,6 +893,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
   
   .drawer {
     max-width: 100%;
+  }
+
+  .modal {
+    width: 95%;
+    height: 90vh;
+    border-radius: var(--radius-md);
   }
 
   .app-header {
