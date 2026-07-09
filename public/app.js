@@ -710,10 +710,9 @@ window.toggleWizard = function(categoryId) {
     card.querySelector('.card-wizard-body').onclick = (e) => e.stopPropagation();
     // Render wizard content first
     renderWizardStep();
-    // Then trigger expansion
+    // Then trigger expansion on next paint
     requestAnimationFrame(() => {
       card.classList.add('expanded-card');
-      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }
 };
@@ -849,8 +848,10 @@ function renderWizardStep() {
         <button class="btn-skip" onclick="skipWizard()">Skip &amp; Show Top 3</button>
       </div>
       
-      <div class="progress-dots">
-        ${dotsHtml}
+      <div class="progress-dots-wrapper">
+        <div class="progress-dots">
+          ${dotsHtml}
+        </div>
       </div>
       
       <form id="wizard-form" onsubmit="handleWizardSubmit(event)">

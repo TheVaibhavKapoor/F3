@@ -454,18 +454,15 @@ button, input, select, textarea {
   box-shadow: 0 0 0 2px var(--color-lime-accent), var(--shadow-md);
 }
 
-/* Normal cards don't span extra columns */
-.category-card {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Expanded card takes full width and grows */
+/* Expanded card: spans full grid width */
 .category-card.expanded-card {
   grid-column: 1 / -1;
   cursor: default;
   min-height: auto;
+  padding: 28px 32px;
 }
 
+/* ---- Card Preview (icon + title + desc) ---- */
 .card-preview {
   display: flex;
   flex-direction: column;
@@ -473,47 +470,83 @@ button, input, select, textarea {
   text-align: left;
 }
 
-/* When expanded, card-preview switches to a horizontal header row */
+/* When expanded: compact horizontal header, acts as a clickable close strip */
 .expanded-card .card-preview {
   flex-direction: row;
   align-items: center;
   gap: 16px;
   padding-bottom: 20px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--color-paper-border);
+  margin-bottom: 24px;
+  border-bottom: 1.5px solid var(--color-paper-border);
   cursor: pointer;
+}
+
+.expanded-card .card-preview:hover {
+  opacity: 0.8;
 }
 
 .expanded-card .card-preview .category-icon {
   margin-bottom: 0;
   flex-shrink: 0;
+  background-color: var(--color-lime-accent);
 }
 
 .expanded-card .card-preview h3 {
   margin-bottom: 2px;
+  font-size: 18px;
 }
 
 .expanded-card .card-preview p {
   margin-bottom: 0;
+  font-size: 13px;
 }
 
-/* Wizard body inside the card */
+/* ---- Wizard body inside the card ---- */
 .card-wizard-body {
   overflow: hidden;
 }
 
+/* Hide the redundant wizard header (Back/Title/Skip) inside expanded card */
+.expanded-card .card-wizard-body .wizard-header {
+  display: none;
+}
+
+/* The wizard inside the card: strip its own card styling */
 .expanded-card .card-wizard-body .flow-wizard {
   border: none;
   box-shadow: none;
   padding: 0;
   margin: 0;
   max-width: 100%;
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Progress dots: left-align inside card */
+.expanded-card .progress-dots {
+  justify-content: flex-start;
+  margin-bottom: 24px;
+}
+
+/* Two-column layout for form fields in wider expanded card */
+.expanded-card .card-wizard-body form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 32px;
+}
+
+.expanded-card .card-wizard-body .wizard-footer {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+}
+
+/* Progress dots go full width */
+.expanded-card .card-wizard-body .progress-dots-wrapper {
+  grid-column: 1 / -1;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Input Flow Wizard */
