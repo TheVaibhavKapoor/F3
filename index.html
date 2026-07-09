@@ -5,51 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>F³ (F3) — Faster Financial Facilitation</title>
   <meta name="description" content="Answer a few questions, get the three best options across deposits, mutual funds, bonds, loans, and insurance. Financial facilitation without spreadsheets.">
-  <link rel="stylesheet" href="styles.css?v=1.0.8">
+  <link rel="stylesheet" href="styles.css?v=1.0.9">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="app-header">
-      <div class="brand-section">
+  
+  <!-- Mobile Navigation Top Bar -->
+  <div class="mobile-nav-bar">
+    <button class="menu-toggle-btn" id="mobile-menu-toggle" aria-label="Toggle navigation menu">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="mobile-brand-title">F<span class="monogram"><sup>3</sup></span></div>
+    <div class="mobile-profile-indicator" id="mobile-profile-btn" role="button">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </div>
+  </div>
+
+  <div class="app-layout">
+    <!-- Sidebar Left Drawer Overlay (Mobile Only) -->
+    <div id="sidebar-overlay" class="drawer-overlay" style="display: none;"></div>
+
+    <!-- Left Sidebar Menu -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
         <h1 class="brand-title">F<span class="monogram"><sup>3</sup></span></h1>
-        <p class="brand-subtitle">Faster Financial Facilitation &bull; Three steps to the best options</p>
+        <p class="brand-subtitle">Faster Financial Facilitation</p>
       </div>
-      
-      <!-- Global pre-fills indicator -->
+
+      <!-- Main Navigation Menu Tabs -->
+      <nav class="sidebar-navigation" aria-label="Main financial categories">
+        <button class="tab-btn active" data-tab="invest" id="tab-invest">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Invest
+        </button>
+        <button class="tab-btn" data-tab="expenses" id="tab-expenses">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+          Expenses
+        </button>
+        <button class="tab-btn" data-tab="loans" id="tab-loans">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+          Loans
+        </button>
+        <button class="tab-btn" data-tab="security" id="tab-security">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Security
+        </button>
+      </nav>
+
+      <!-- Profile status fact badge -->
       <div id="prefill-status" class="global-badge" style="display: none;">
         <span class="dot"></span>
-        <span id="prefill-status-text">Learning as you go</span>
+        <span id="prefill-status-text">Learning fact</span>
       </div>
-    </header>
 
-    <!-- Main Navigation Tabs -->
-    <nav class="tabs-navigation" aria-label="Main financial categories">
-      <button class="tab-btn active" data-tab="invest" id="tab-invest">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Invest
-      </button>
-      <button class="tab-btn" data-tab="expenses" id="tab-expenses">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
-        Expenses
-      </button>
-      <button class="tab-btn" data-tab="loans" id="tab-loans">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m18.7 8-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-        Loans
-      </button>
-      <button class="tab-btn" data-tab="security" id="tab-security">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        Security
-      </button>
-    </nav>
-
-    <!-- Dynamic Content Area -->
-    <main id="app-content">
-      <!-- Content will be injected dynamically by app.js -->
-      <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
-        <p>Loading Faster Financial Facilitation...</p>
+      <!-- Left Sidebar User Panel -->
+      <div class="sidebar-user-panel" id="sidebar-user-panel">
+        <!-- Auth button / User profile details injected dynamically by JS -->
       </div>
-    </main>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-content-wrapper">
+      <main id="app-content">
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
+          <p>Loading Faster Financial Facilitation...</p>
+        </div>
+      </main>
+    </div>
   </div>
 
   <!-- Sliding Drawer Overlay for Drill-ins -->
@@ -70,7 +91,7 @@
   <div id="compare-overlay" class="drawer-overlay" style="display: none;"></div>
   <div id="compare-modal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="compare-title">
     <div class="drawer-header">
-      <h2 id="compare-title">Comparison Chart (All Options)</h2>
+      <h2 id="compare-title">Comparison Registry (Ranked)</h2>
       <button class="close-btn" id="compare-close" aria-label="Close comparison">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -80,8 +101,60 @@
     </div>
   </div>
 
+  <!-- Auth Modal -->
+  <div id="auth-overlay" class="drawer-overlay" style="display: none;"></div>
+  <div id="auth-modal" class="modal auth-modal-box" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="drawer-header">
+      <h2 id="auth-title">Welcome to F³</h2>
+      <button class="close-btn" id="auth-close" aria-label="Close Authentication">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-content" id="auth-body" style="padding: 24px;">
+      <!-- Authenticate forms injected here by app.js -->
+    </div>
+  </div>
+
+  <!-- Floating AI Chatbot Widget -->
+  <div id="chatbot-container" class="chatbot-container collapsed">
+    <button class="chatbot-toggle-btn" id="chatbot-toggle" aria-label="Open Financial Helper Assistant">
+      <span class="pulse-indicator"></span>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    
+    <div class="chatbot-window">
+      <div class="chatbot-header">
+        <div class="bot-info">
+          <div class="bot-avatar">🤖</div>
+          <div>
+            <h3 class="bot-name">F³ AI Assistant</h3>
+            <span class="bot-status">Online &bull; Interactive Chat</span>
+          </div>
+        </div>
+        <button class="chatbot-close-btn" id="chatbot-close" aria-label="Close Chat Window">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <div class="chatbot-messages" id="chatbot-messages-container">
+        <!-- Chat logs appended by app.js -->
+      </div>
+      
+      <div class="chatbot-quick-replies" id="chatbot-quick-replies">
+        <!-- Suggested query shortcut pills -->
+      </div>
+      
+      <form class="chatbot-input-form" id="chatbot-input-form">
+        <input type="text" id="chatbot-input-field" class="chatbot-input-field" placeholder="Ask me something about FDs, Mutual Funds, Loans..." autocomplete="off">
+        <button type="submit" class="chatbot-send-btn" aria-label="Send Message button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- App Logic Scripts -->
-  <script src="data.js?v=1.0.8"></script>
-  <script src="app.js?v=1.0.8"></script>
+  <script src="data.js?v=1.0.9"></script>
+  <script src="app.js?v=1.0.9"></script>
 </body>
 </html>

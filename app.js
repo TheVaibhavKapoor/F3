@@ -590,6 +590,15 @@ function initNavigation() {
       AppState.activeTab = tab.dataset.tab;
       AppState.currentCategory = null;
       renderActiveTabContent();
+      
+      // Close mobile sidebar if active
+      const sidebar = document.getElementById('app-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if (sidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+      }
     });
   });
 }
@@ -1860,13 +1869,454 @@ function closeDrawers() {
 
 // 11. BOOTSTRAP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
+  // Load saved user session
+  const savedUser = localStorage.getItem('f3_user');
+  if (savedUser) {
+    AppState.user = JSON.parse(savedUser);
+  }
+  
   initNavigation();
   renderActiveTabContent();
+  renderSidebarUserPanel();
+  initChatbotForm();
   
   // Connect close click events
   document.getElementById('drawer-close').addEventListener('click', closeDrawers);
   document.getElementById('drawer-overlay').addEventListener('click', closeDrawers);
-  
   document.getElementById('compare-close').addEventListener('click', closeDrawers);
   document.getElementById('compare-overlay').addEventListener('click', closeDrawers);
+  
+  document.getElementById('auth-close').addEventListener('click', closeAuthModal);
+  document.getElementById('auth-overlay').addEventListener('click', closeAuthModal);
+  
+  // Mobile UI Sidebar events
+  const sidebar = document.getElementById('app-sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  
+  document.getElementById('mobile-menu-toggle').addEventListener('click', () => {
+    sidebar.classList.add('active');
+    sidebarOverlay.style.display = 'block';
+    setTimeout(() => sidebarOverlay.classList.add('active'), 10);
+  });
+  
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+    setTimeout(() => { sidebarOverlay.style.display = 'none'; }, 300);
+  });
+
+  // Mobile Top Bar profile icon click triggers auth modal
+  document.getElementById('mobile-profile-btn').addEventListener('click', () => {
+    if (AppState.user) {
+      // Toggle side panel directly to let them log out
+      sidebar.classList.add('active');
+      sidebarOverlay.style.display = 'block';
+      setTimeout(() => sidebarOverlay.classList.add('active'), 10);
+    } else {
+      showAuthModal();
+    }
+  });
+  
+  // Chatbot toggle actions
+  document.getElementById('chatbot-toggle').addEventListener('click', toggleChatbot);
+  document.getElementById('chatbot-close').addEventListener('click', toggleChatbot);
 });
+
+// 12. SIMULATED AUTHENTICATION CONTROLLER
+window.showAuthModal = function() {
+  const overlay = document.getElementById('auth-overlay');
+  const modal = document.getElementById('auth-modal');
+  const body = document.getElementById('auth-body');
+  
+  // Render login screen options
+  body.innerHTML = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="font-size: 14px; color: var(--color-ink-secondary); line-height: 1.5;">
+        Securely access personalized financial planning and save your facts.
+      </p>
+    </div>
+    <div class="auth-options">
+      <button class="btn-oauth" onclick="triggerGmailLogin()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8A4 4 0 1 0 12 16A4 4 0 1 0 12 8Z"/></svg>
+        Sign in with Google (Gmail)
+      </button>
+      
+      <div class="auth-divider">or use one-time password</div>
+      
+      <div class="auth-input-group">
+        <label for="auth-email">Email Address</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="email" id="auth-email" class="auth-input-field" placeholder="name@email.com">
+          <button class="btn btn-primary" onclick="sendOTP('email')" style="padding: 10px 14px; font-size: 13px; white-space: nowrap;">Send OTP</button>
+        </div>
+      </div>
+      
+      <div class="auth-input-group">
+        <label for="auth-phone">Phone Number</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="tel" id="auth-phone" class="auth-input-field" placeholder="+91 98765 43210">
+          <button class="btn btn-primary" onclick="sendOTP('phone')" style="padding: 10px 14px; font-size: 13px; white-space: nowrap;">Send OTP</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  overlay.style.display = 'block';
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    overlay.classList.add('active');
+    modal.classList.add('active');
+  }, 10);
+};
+
+window.closeAuthModal = function() {
+  const overlay = document.getElementById('auth-overlay');
+  const modal = document.getElementById('auth-modal');
+  overlay.classList.remove('active');
+  modal.classList.remove('active');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    modal.style.display = 'none';
+  }, 300);
+};
+
+window.triggerGmailLogin = function() {
+  const width = 450;
+  const height = 550;
+  const left = (screen.width - width) / 2;
+  const top = (screen.height - height) / 2;
+  
+  const popup = window.open("", "Google Sign In", `width=${width},height=${height},left=${left},top=${top},scrollbars=no,resizable=no`);
+  
+  popup.document.write(`
+    <html>
+      <head>
+        <title>Sign in - Google Accounts</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f1f3f4; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+          .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 320px; text-align: center; border: 1px solid #dadce0; }
+          .google-logo { font-size: 24px; font-weight: bold; margin-bottom: 20px; font-family: Arial, sans-serif; }
+          .google-logo span:nth-child(1) { color: #4285F4; }
+          .google-logo span:nth-child(2) { color: #EA4335; }
+          .google-logo span:nth-child(3) { color: #FBBC05; }
+          .google-logo span:nth-child(4) { color: #34A853; }
+          h2 { font-size: 20px; margin-bottom: 8px; color: #202124; font-weight: 400; }
+          p { font-size: 14px; color: #5f6368; margin-bottom: 24px; }
+          .account-option { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer; transition: background 0.2s; margin-bottom: 12px; text-align: left; }
+          .account-option:hover { background-color: #f8f9fa; }
+          .avatar { width: 36px; height: 36px; border-radius: 50%; background: #e8f0fe; color: #1a73e8; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; }
+          .acc-info { display: flex; flex-direction: column; }
+          .acc-name { font-size: 13px; font-weight: 500; color: #3c4043; }
+          .acc-email { font-size: 11px; color: #5f6368; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="google-logo">
+            <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+          </div>
+          <h2>Sign in with Google</h2>
+          <p>to continue to F³ (F3)</p>
+          
+          <div class="account-option" onclick="selectAcc('Vaibhav Kapoor', 'vaibhav.kapoor@gmail.com')">
+            <div class="avatar">VK</div>
+            <div class="acc-info">
+              <span class="acc-name">Vaibhav Kapoor</span>
+              <span class="acc-email">vaibhav.kapoor@gmail.com</span>
+            </div>
+          </div>
+          <div class="account-option" onclick="selectAcc('Guest User', 'guest.f3@gmail.com')">
+            <div class="avatar">G</div>
+            <div class="acc-info">
+              <span class="acc-name">Guest User</span>
+              <span class="acc-email">guest.f3@gmail.com</span>
+            </div>
+          </div>
+        </div>
+        <script>
+          function selectAcc(name, email) {
+            window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', name: name, email: email }, '*');
+            window.close();
+          }
+        </script>
+      </body>
+    </html>
+  `);
+};
+
+// Handle Message back from Google Sign-In simulated popup
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+    const user = {
+      name: event.data.name,
+      email: event.data.email,
+      method: 'Google',
+      avatar: event.data.name.split(' ').map(n=>n[0]).join('')
+    };
+    loginUser(user);
+  }
+});
+
+window.sendOTP = function(type) {
+  const value = type === 'email' ? document.getElementById('auth-email').value : document.getElementById('auth-phone').value;
+  if (!value) {
+    alert(`Please enter a valid ${type === 'email' ? 'email address' : 'phone number'}`);
+    return;
+  }
+  
+  const body = document.getElementById('auth-body');
+  body.innerHTML = `
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h3 style="margin-bottom: 8px;">Enter Verification Code</h3>
+      <p style="font-size: 13px; color: var(--color-ink-secondary);">We've sent a 4-digit code to <strong>${value}</strong></p>
+    </div>
+    
+    <div class="otp-inputs">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-1" onkeyup="moveOTPFocus(1, 2, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-2" onkeyup="moveOTPFocus(2, 3, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-3" onkeyup="moveOTPFocus(3, 4, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-4" onkeyup="moveOTPFocus(4, null, event)">
+    </div>
+    
+    <div style="text-align: center; margin-top: 16px;">
+      <button class="btn btn-primary" onclick="verifyOTP('${type}', '${value}')" style="padding: 10px 20px; width: 100%;">Verify &amp; Continue</button>
+      <p style="font-size: 11px; color: var(--color-ink-muted); margin-top: 16px; cursor: pointer;" onclick="showAuthModal()">Back to login options</p>
+    </div>
+  `;
+  
+  // Focus the first digit
+  setTimeout(() => {
+    const el = document.getElementById('otp-1');
+    if (el) el.focus();
+  }, 100);
+};
+
+window.moveOTPFocus = function(current, next, event) {
+  const input = document.getElementById(`otp-${current}`);
+  if (event.key === 'Backspace' && current > 1) {
+    document.getElementById(`otp-${current-1}`).focus();
+  } else if (input && input.value.length >= 1 && next) {
+    document.getElementById(`otp-${next}`).focus();
+  }
+};
+
+window.verifyOTP = function(type, identifier) {
+  const digit1 = document.getElementById('otp-1').value;
+  const digit2 = document.getElementById('otp-2').value;
+  const digit3 = document.getElementById('otp-3').value;
+  const digit4 = document.getElementById('otp-4').value;
+  
+  if (!digit1 || !digit2 || !digit3 || !digit4) {
+    alert("Please enter the 4-digit code.");
+    return;
+  }
+  
+  let name = identifier.split('@')[0];
+  if (type === 'phone') name = `User ${identifier.slice(-4)}`;
+  
+  const user = {
+    name: name,
+    email: type === 'email' ? identifier : '',
+    phone: type === 'phone' ? identifier : '',
+    method: type === 'email' ? 'Email OTP' : 'Phone OTP',
+    avatar: type === 'email' ? name.substring(0,2).toUpperCase() : '📱'
+  };
+  
+  loginUser(user);
+};
+
+function loginUser(user) {
+  AppState.user = user;
+  localStorage.setItem('f3_user', JSON.stringify(user));
+  renderSidebarUserPanel();
+  closeAuthModal();
+  
+  // Show welcome notification in Chatbot
+  setTimeout(() => {
+    pushBotMessage(`Welcome back, ${user.name}! I've synced your facts from your profile session. How can I help you today?`);
+  }, 500);
+}
+
+window.logoutUser = function() {
+  AppState.user = null;
+  localStorage.removeItem('f3_user');
+  renderSidebarUserPanel();
+  pushBotMessage("Logged out successfully. Session facts cleared.");
+};
+
+window.renderSidebarUserPanel = function() {
+  const panel = document.getElementById('sidebar-user-panel');
+  if (!panel) return;
+  
+  if (AppState.user) {
+    panel.innerHTML = `
+      <div class="user-profile-card">
+        <div class="user-avatar">${AppState.user.avatar}</div>
+        <div class="user-details">
+          <h4 class="user-name">${AppState.user.name}</h4>
+          <span class="user-meta">${AppState.user.email || AppState.user.phone}</span>
+        </div>
+      </div>
+      <button class="btn-sidebar-auth logout-btn" onclick="logoutUser()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    `;
+  } else {
+    panel.innerHTML = `
+      <button class="btn-sidebar-auth" onclick="showAuthModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Sign In / Join F³
+      </button>
+    `;
+  }
+};
+
+// 13. INTERACTIVE AI FINANCIAL CHATBOT WIDGET
+const BotResponses = {
+  greetings: [
+    "Hello! How can I assist you with your financial planning today?",
+    "Hey there! Ready to fast-track your finances? Ask me about FDs, Mutual Funds, or Loans."
+  ],
+  default: "I'm still learning! You can ask me things like 'What is the best FD yield?', 'Compare PSU vs Private loans', or choose from the shortcut buttons below.",
+  fd: () => {
+    const rawFDs = calculateTopThreeDetailsFD();
+    const top = rawFDs[0];
+    const top2 = rawFDs[1];
+    return `Based on F3 calculations, the best Fixed Deposit returns are:<br>
+            &bull; <strong>${top.bankName}</strong>: <strong>${top.effectiveYield.toFixed(2)}% net yield</strong> (Base rate ${top.rate.toFixed(2)}%)<br>
+            &bull; <strong>${top2.bankName}</strong>: <strong>${top2.effectiveYield.toFixed(2)}% net yield</strong> (Base rate ${top2.rate.toFixed(2)}%)<br><br>
+            Would you like me to open the full comparison table?`;
+  },
+  loans: () => {
+    const rawLoans = calculateTopThreeDetailsLoans();
+    const top = rawLoans[0];
+    const top2 = rawLoans[1];
+    const purpose = AppState.prefills.loanPurpose || "Home Loan";
+    return `For ${purpose}, the lowest effective rate loans are:<br>
+            &bull; <strong>${top.bankName}</strong>: <strong>${top.effectiveRate.toFixed(2)}% effective rate</strong> (Base rate ${top.activeRate.toFixed(2)}%)<br>
+            &bull; <strong>${top2.bankName}</strong>: <strong>${top2.effectiveRate.toFixed(2)}% effective rate</strong> (Base rate ${top2.activeRate.toFixed(2)}%)<br><br>
+            This amortizes processing fees over a 20-year cycle.`;
+  },
+  formula: "F3 calculates <strong>effective yields</strong> post-TDS. If interest exceeds ₹40k (₹50k for seniors), TDS slab rates (up to 30%) are applied dynamically to simulate real-world returns."
+};
+
+window.toggleChatbot = function() {
+  const container = document.getElementById('chatbot-container');
+  container.classList.toggle('active');
+  
+  const msgContainer = document.getElementById('chatbot-messages-container');
+  if (msgContainer && msgContainer.children.length === 0) {
+    pushBotMessage("Hi! I'm the F³ AI Assistant. I can check current FD yields, simulate EMIs, or help you compare banking sectors. Ask me anything!");
+    renderQuickReplies();
+  }
+  
+  scrollToChatBottom();
+};
+
+function scrollToChatBottom() {
+  const msgContainer = document.getElementById('chatbot-messages-container');
+  if (msgContainer) {
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  }
+}
+
+function pushUserMessage(text) {
+  const msgContainer = document.getElementById('chatbot-messages-container');
+  if (!msgContainer) return;
+  
+  const div = document.createElement('div');
+  div.className = 'chat-message user';
+  div.innerText = text;
+  msgContainer.appendChild(div);
+  scrollToChatBottom();
+}
+
+function pushBotMessage(text) {
+  const msgContainer = document.getElementById('chatbot-messages-container');
+  if (!msgContainer) return;
+  
+  const div = document.createElement('div');
+  div.className = 'chat-message bot';
+  div.innerHTML = text;
+  msgContainer.appendChild(div);
+  scrollToChatBottom();
+}
+
+function showBotTypingIndicator() {
+  const msgContainer = document.getElementById('chatbot-messages-container');
+  if (!msgContainer) return null;
+  
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'chat-typing-indicator';
+  div.innerHTML = `
+    <span class="typing-dot"></span>
+    <span class="typing-dot"></span>
+    <span class="typing-dot"></span>
+  `;
+  msgContainer.appendChild(div);
+  scrollToChatBottom();
+  return div;
+}
+
+function removeBotTypingIndicator() {
+  const indicator = document.getElementById('chat-typing-indicator');
+  if (indicator) indicator.remove();
+}
+
+window.handleQuickReply = function(promptText) {
+  pushUserMessage(promptText);
+  processBotReply(promptText);
+};
+
+function renderQuickReplies() {
+  const replies = document.getElementById('chatbot-quick-replies');
+  if (!replies) return;
+  
+  replies.innerHTML = `
+    <button class="quick-reply-pill" onclick="handleQuickReply('What\\'s the best FD rate?')">📈 Best FD rate</button>
+    <button class="quick-reply-pill" onclick="handleQuickReply('Show best Loan offers')">🏠 Lowest Loan rates</button>
+    <button class="quick-reply-pill" onclick="handleQuickReply('How does F3 calculate post-tax yields?')">🧮 Calculations formula</button>
+  `;
+}
+
+function processBotReply(query) {
+  const cleanQuery = query.toLowerCase();
+  showBotTypingIndicator();
+  
+  setTimeout(() => {
+    removeBotTypingIndicator();
+    let reply = '';
+    
+    if (cleanQuery.includes('fd') || cleanQuery.includes('fixed deposit') || cleanQuery.includes('yield')) {
+      reply = BotResponses.fd();
+    } else if (cleanQuery.includes('loan') || cleanQuery.includes('emi') || cleanQuery.includes('rate')) {
+      reply = BotResponses.loans();
+    } else if (cleanQuery.includes('formula') || cleanQuery.includes('calculate') || cleanQuery.includes('tds')) {
+      reply = BotResponses.formula;
+    } else if (cleanQuery.includes('hello') || cleanQuery.includes('hi') || cleanQuery.includes('hey')) {
+      reply = BotResponses.greetings[Math.floor(Math.random() * BotResponses.greetings.length)];
+    } else {
+      reply = BotResponses.default;
+    }
+    
+    pushBotMessage(reply);
+  }, 1000);
+}
+
+function initChatbotForm() {
+  const form = document.getElementById('chatbot-input-form');
+  const field = document.getElementById('chatbot-input-field');
+  if (!form || !field) return;
+  
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const query = field.value.trim();
+    if (!query) return;
+    
+    pushUserMessage(query);
+    field.value = '';
+    processBotReply(query);
+  });
+}
