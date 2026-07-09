@@ -681,11 +681,12 @@ window.toggleWizard = function(categoryId) {
     if (card) {
       card.classList.remove('expanded-card');
       card.classList.remove('active');
+      // Clear wizard content immediately so it doesn't show during collapse
+      const body = card.querySelector('.card-wizard-body');
+      if (body) body.innerHTML = '';
     }
     setTimeout(() => {
       AppState.currentCategory = null;
-      // Re-render to restore pointer-events for all cards
-      document.querySelectorAll('.category-card').forEach(c => c.style.pointerEvents = '');
     }, 380);
     return;
   }
