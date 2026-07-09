@@ -159,5 +159,10 @@
   <!-- App Logic Scripts -->
   <script src="data.js?v=1.2.0"></script>
   <script src="app.js?v=1.2.0"></script>
+  <script>
+    // Bootstrap: load live FD rates immediately on page load
+    if (typeof loadFdRates === 'function') loadFdRates();
+    if (typeof loadBackendConfig === 'function') loadBackendConfig();
+  </script>
 </body>
 </html>

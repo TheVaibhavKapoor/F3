@@ -1,0 +1,53 @@
+name: 🔄 Auto-Update FD Rates Daily
+
+on:
+  schedule:
+    - cron: '30 0 * * *'   # 6:00 AM IST (IST = UTC+5:30, so 00:30 UTC)
+  workflow_dispatch:          # Allow manual trigger from GitHub Actions tab
+
+permissions:
+  contents: write             # Allow the bot to push commits
+
+jobs:
+  update-fd-rates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install scraper dependencies
+        run: npm install axios cheerio --no-save
+
+      - name: Run FD rate fetcher
+        run: node scripts/fetch-fd-rates.js
+        env:
+          NODE_ENV: production
+
+      - name: Check if rates changed
+        id: diff
+        run: |
+          git diff --quiet public/fd_rates.json && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push updated rates
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "F3 Rate Bot"
+          git config user.email "ratebot@f3.app"
+          git add public/fd_rates.json
+          git commit -m "chore: auto-update FD rates $(date -u +%Y-%m-%d)"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: No changes
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "FD rates unchanged today - no commit needed."

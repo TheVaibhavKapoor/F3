@@ -120,6 +120,23 @@ function loadBackendConfig() {
     .catch(err => console.warn("[F3 AUTH] Failed to fetch backend config:", err.message));
 }
 
+// Load live FD rates from auto-updated fd_rates.json (falls back to bundled data.js)
+function loadFdRates() {
+  fetch('/fd_rates.json?v=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+      if (data.banks && data.banks.length > 0) {
+        F3Data.fixedDeposits = data.banks;
+        F3Data.fdRatesLastUpdated = data.lastUpdated;
+        F3Data.fdRatesSource = data.source;
+        console.log(`[F3 DATA] Loaded ${data.banks.length} banks from fd_rates.json (${data.lastUpdated})`);
+      }
+    })
+    .catch(() => {
+      console.warn('[F3 DATA] fd_rates.json unavailable, using bundled data.js rates.');
+    });
+}
+
 // 2. CATEGORY CONFIGURATIONS & WIZARD STEPS
 const CategoryConfig = {
   // --- INVEST TAB ---
@@ -1289,7 +1306,15 @@ function calculateTopThree(categoryId) {
     else if (pref.income && pref.income < 700000) taxRate = 0.00;
     
     const calculated = list.map(item => {
-      const rate = isSenior ? item.seniorRate : item.headlineRate;
+      // Tenure-aware rate lookup: find closest tenure bracket
+      const tenureYr = String(Math.min(10, Math.max(1, Math.round(years))));
+      let baseRate = item.headlineRate; // fallback
+      if (item.tenureRates) {
+        const keys = Object.keys(item.tenureRates).map(Number).sort((a,b) => a-b);
+        const closest = keys.reduce((prev, cur) => Math.abs(cur - years) < Math.abs(prev - years) ? cur : prev);
+        baseRate = item.tenureRates[String(closest)];
+      }
+      const rate = isSenior ? baseRate + (item.seniorBonus || 0.5) : baseRate;
       
       // Cumulative Interest Formula: A = P(1 + r/4)^(4n)
       const maturityVal = amount * Math.pow(1 + (rate/100) / 4, 4 * years);
@@ -1711,17 +1736,35 @@ window.openDrillIn = function(categoryId, index) {
         <h4 style="margin-bottom: 12px;">Maturity Yield Calculation</h4>
         <div class="calc-row"><span>Principal Investment</span><span class="mono">₹${amount.toLocaleString()}</span></div>
         <div class="calc-row"><span>Tenure Duration</span><span class="mono">${years} Years</span></div>
-        <div class="calc-row"><span>Interest rate</span><span class="mono">${itemDetails.rate.toFixed(2)}%</span></div>
+        <div class="calc-row"><span>Interest Rate (${years}yr tenure)</span><span class="mono">${itemDetails.rate.toFixed(2)}% p.a.</span></div>
+        <div class="calc-row"><span>Compounding</span><span class="mono">Quarterly</span></div>
         <div class="calc-row"><span>Gross Interest Earned</span><span class="mono">₹${Math.round(itemDetails.interestEarned).toLocaleString()}</span></div>
-        <div class="calc-row" style="color: var(--color-error);"><span>Estimated TDS Deductions</span><span class="mono">-₹${Math.round(itemDetails.tds).toLocaleString()}</span></div>
+        <div class="calc-row" style="color: var(--color-error);"><span>Estimated TDS Deductions</span><span class="mono">-₹${Math.round(itemDetails.tds || 0).toLocaleString()}</span></div>
         <div class="calc-row total"><span>Net Maturity Value</span><span class="mono">₹${Math.round(itemDetails.maturityVal).toLocaleString()}</span></div>
       </div>
       
       <div style="margin-top: 24px;">
         <h4 style="margin-bottom: 8px;">F3 Trust &amp; Premature Penalties</h4>
         <p style="font-size: 13px; line-height: 1.5; color: var(--color-ink-secondary); margin-bottom: 12px;">
-          &bull; <strong>DICGC Insurance Confirmed</strong>: Your deposit with ${selectedItem.title.split(' ')[0]} is fully insured up to **₹5,00,000** under RBI regulations.<br><br>
+          &bull; <strong>DICGC Insurance Confirmed</strong>: Your deposit with ${itemDetails.bankName} is fully insured up to ₹5,00,000 under RBI regulations.<br><br>
           &bull; <strong>Premature Withdrawal Penalty</strong>: ${itemDetails.prematurePenalty}. If you withdraw early, you will earn interest at the rate applicable to the duration held, minus this penalty.
+        </p>
+      </div>
+
+      <div style="margin-top: 20px; padding: 16px; background: var(--color-accent-lime); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 10px;">
+        <a href="${itemDetails.bookingUrl || '#'}" target="_blank" rel="noopener noreferrer"
+           style="display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--color-ink-primary); color: var(--color-paper-bg); padding: 12px 20px; border-radius: var(--radius-sm); font-weight: 700; text-decoration: none; font-size: 15px;"
+           onclick="event.stopPropagation()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Book FD on ${itemDetails.bankName}'s Website
+        </a>
+        <a href="${itemDetails.ratesUrl || itemDetails.bookingUrl || '#'}" target="_blank" rel="noopener noreferrer"
+           style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--color-ink-secondary); font-size: 12px; text-decoration: none;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Verify current rates on official site &rarr;
+        </a>
+        <p style="font-size: 10px; color: var(--color-ink-muted); margin: 0; text-align: center; line-height: 1.4;">
+          ⚠️ Rates are indicative${F3Data.fdRatesLastUpdated ? ` (updated ${new Date(F3Data.fdRatesLastUpdated).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})})` : ''}. Always verify on the bank's official website before investing.
         </p>
       </div>
     `;
@@ -1798,7 +1841,15 @@ function calculateTopThreeDetailsFD() {
   else if (AppState.prefills.income && AppState.prefills.income < 700000) taxRate = 0.00;
   
   const calculated = list.map(item => {
-    const rate = isSenior ? item.seniorRate : item.headlineRate;
+    // Tenure-aware rate lookup
+    let baseRate = item.headlineRate;
+    if (item.tenureRates) {
+      const keys = Object.keys(item.tenureRates).map(Number).sort((a,b) => a-b);
+      const closest = keys.reduce((prev, cur) => Math.abs(cur - years) < Math.abs(prev - years) ? cur : prev);
+      baseRate = item.tenureRates[String(closest)];
+    }
+    const rate = isSenior ? baseRate + (item.seniorBonus || 0.5) : baseRate;
+
     const maturityValVal = amount * Math.pow(1 + (rate/100) / 4, 4 * years);
     const interestEarned = maturityValVal - amount;
     
