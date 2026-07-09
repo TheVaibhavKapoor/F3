@@ -922,6 +922,7 @@ function updatePrefillStatusBadge() {
 }
 
 // 6. RANKING & RESULTS GENERATION
+// 6. RANKING & RESULTS GENERATION
 window.showResults = function() {
   const container = document.getElementById('app-content');
   const categoryId = AppState.currentCategory;
@@ -934,47 +935,177 @@ window.showResults = function() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Adjust Inputs
         </button>
-        <h2 style="font-size: 24px;">Top 3 Ranked ${config.title} Options</h2>
-        <p style="font-size: 14px; color: var(--color-ink-secondary);">Filtered based on your profile inputs &amp; ranked by financial efficiency.</p>
-      </div>
-      
-      <div class="results-grid">
-  `;
-  
-  const results = calculateTopThree(categoryId);
-  
-  results.forEach((item, index) => {
-    html += `
-      <div class="ranked-card" onclick="openDrillIn('${categoryId}', ${index})" role="button" tabindex="0">
-        <div class="rank-badge">${index + 1}</div>
+        <h2 style="font-size: 24px;">`;
         
-        <div class="card-details">
-          <div class="card-top-row">
-            <div>
-              <h3 class="card-title">${item.title}</h3>
-              <p class="card-subtitle">${item.subtitle}</p>
+  if (categoryId === 'fd' || categoryId === 'loans') {
+    html += `Top Bank Rates Comparison (${config.title})</h2>
+             <p style="font-size: 14px; color: var(--color-ink-secondary);">Best yields/rates segmented by banking sector based on your profile inputs.</p>`;
+  } else {
+    html += `Top 3 Ranked ${config.title} Options</h2>
+             <p style="font-size: 14px; color: var(--color-ink-secondary);">Filtered based on your profile inputs &amp; ranked by financial efficiency.</p>`;
+  }
+  
+  html += `</div>`;
+  
+  if (categoryId === 'fd') {
+    const rawDetails = calculateTopThreeDetailsFD();
+    const grouped = {
+      PSU: [],
+      Private: [],
+      SFB: [],
+      Foreign: []
+    };
+    rawDetails.forEach(item => {
+      if (grouped[item.category]) {
+        grouped[item.category].push(item);
+      }
+    });
+    
+    html += `
+      <div class="bento-grid" style="margin-top: 16px;">
+    `;
+    
+    Object.entries(grouped).forEach(([catKey, items]) => {
+      const catInfo = F3Data.bankCategories[catKey] || { name: catKey, strengths: "" };
+      const topTwo = items.slice(0, 2);
+      
+      html += `
+        <div class="bento-box">
+          <div style="width: 100%;">
+            <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 16px; margin-top: 0; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+              <span>${catInfo.name}</span>
+              <span class="tag-badge" style="font-size: 9px; padding: 2px 6px; background-color: var(--color-accent-lime); color: var(--color-ink-primary); font-weight: 600;">Top 2</span>
+            </h4>
+            <p style="font-size: 11px; color: var(--color-ink-secondary); margin-top: 0; margin-bottom: 12px; font-style: italic;">
+              Best for: ${catInfo.strengths}
+            </p>
+      `;
+      
+      if (topTwo.length === 0) {
+        html += `<p style="font-size: 12px; color: var(--color-ink-muted); margin: 8px 0;">No matching options.</p>`;
+      } else {
+        topTwo.forEach(bank => {
+          const overallIdx = rawDetails.findIndex(r => r.bankName === bank.bankName);
+          html += `
+            <div class="bento-item" onclick="openDrillIn('fd', ${overallIdx})" style="cursor: pointer;" role="button">
+              <span class="bento-bank-name">${bank.bankName}</span>
+              <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
+                <div style="text-align: right;">
+                  <span class="bento-bank-rate">${bank.effectiveYield.toFixed(2)}%</span>
+                  <span style="display: block; font-size: 9px; color: var(--color-ink-muted);">Base: ${bank.rate.toFixed(2)}%</span>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--color-ink-muted); margin-left: 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </div>
             </div>
-            <div>
-              <span class="tag-badge ${index === 0 ? 'accent-tag' : ''}">${item.badge}</span>
-            </div>
+          `;
+        });
+      }
+      
+      html += `
           </div>
         </div>
-        
-        <div class="card-metrics">
-          <div class="metric-value">${item.metric}</div>
-          <div class="metric-label">${item.metricLabel}</div>
-        </div>
-        
-        <div class="card-arrow">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-      </div>
+      `;
+    });
+    
+    html += `</div>`;
+    
+  } else if (categoryId === 'loans') {
+    const rawDetails = calculateTopThreeDetailsLoans();
+    const grouped = {
+      PSU: [],
+      Private: [],
+      SFB: [],
+      NBFC: []
+    };
+    rawDetails.forEach(item => {
+      if (grouped[item.bankCategory]) {
+        grouped[item.bankCategory].push(item);
+      }
+    });
+    
+    html += `
+      <div class="bento-grid" style="margin-top: 16px;">
     `;
-  });
+    
+    Object.entries(grouped).forEach(([catKey, items]) => {
+      const catInfo = F3Data.bankCategories[catKey] || { name: catKey, strengths: "" };
+      const topTwo = items.slice(0, 2);
+      
+      html += `
+        <div class="bento-box">
+          <div style="width: 100%;">
+            <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 16px; margin-top: 0; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+              <span>${catInfo.name}</span>
+              <span class="tag-badge" style="font-size: 9px; padding: 2px 6px; background-color: var(--color-accent-lime); color: var(--color-ink-primary); font-weight: 600;">Top 2</span>
+            </h4>
+            <p style="font-size: 11px; color: var(--color-ink-secondary); margin-top: 0; margin-bottom: 12px; font-style: italic;">
+              Best for: ${catInfo.strengths}
+            </p>
+      `;
+      
+      if (topTwo.length === 0) {
+        html += `<p style="font-size: 12px; color: var(--color-ink-muted); margin: 8px 0;">No matching options.</p>`;
+      } else {
+        topTwo.forEach(loan => {
+          const overallIdx = rawDetails.findIndex(r => r.bankName === loan.bankName);
+          html += `
+            <div class="bento-item" onclick="openDrillIn('loans', ${overallIdx})" style="cursor: pointer;" role="button">
+              <span class="bento-bank-name">${loan.bankName}</span>
+              <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
+                <div style="text-align: right;">
+                  <span class="bento-bank-rate">${loan.effectiveRate.toFixed(2)}%</span>
+                  <span style="display: block; font-size: 9px; color: var(--color-ink-muted);">Base: ${loan.activeRate.toFixed(2)}%</span>
+                </div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--color-ink-muted); margin-left: 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      html += `
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+    
+  } else {
+    html += `<div class="results-grid">`;
+    const results = calculateTopThree(categoryId);
+    results.forEach((item, index) => {
+      html += `
+        <div class="ranked-card" onclick="openDrillIn('${categoryId}', ${index})" role="button" tabindex="0">
+          <div class="rank-badge">${index + 1}</div>
+          
+          <div class="card-details">
+            <div class="card-top-row">
+              <div>
+                <h3 class="card-title">${item.title}</h3>
+                <p class="card-subtitle">${item.subtitle}</p>
+              </div>
+              <div>
+                <span class="tag-badge ${index === 0 ? 'accent-tag' : ''}">${item.badge}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card-metrics">
+            <div class="metric-value">${item.metric}</div>
+            <div class="metric-label">${item.metricLabel}</div>
+          </div>
+          
+          <div class="card-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+  }
   
   html += `
-      </div>
-      
       <div class="results-actions">
         <button class="btn btn-secondary" onclick="cancelWizard()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -1391,8 +1522,26 @@ window.openDrillIn = function(categoryId, index) {
   const drawerTitle = document.getElementById('drawer-title');
   const drawerBody = document.getElementById('drawer-body');
   
-  const results = calculateTopThree(categoryId);
-  const selectedItem = results[index];
+  let selectedItem;
+  if (categoryId === 'fd') {
+    const rawList = calculateTopThreeDetailsFD();
+    const itemDetails = rawList[index];
+    selectedItem = {
+      title: `${itemDetails.bankName} Fixed Deposit`,
+      badge: (index === 0) ? "Highest Effective Return" : "Competitive Yield"
+    };
+  } else if (categoryId === 'loans') {
+    const rawList = calculateTopThreeDetailsLoans();
+    const itemDetails = rawList[index];
+    const purpose = AppState.prefills.loanPurpose || "Home Loan";
+    selectedItem = {
+      title: `${itemDetails.bankName} - ${purpose}`,
+      badge: (index === 0) ? "Lowest Effective Rate" : "Competitive Financing"
+    };
+  } else {
+    const results = calculateTopThree(categoryId);
+    selectedItem = results[index];
+  }
   
   drawerTitle.innerText = selectedItem.title;
   
@@ -1560,7 +1709,6 @@ function calculateTopThreeDetailsLoans() {
 }
 
 // 9. COMPARE ALL FULL TABLE DIALOG
-// 9. COMPARE ALL FULL TABLE DIALOG
 window.openComparisonTable = function(categoryId) {
   const compareOverlay = document.getElementById('compare-overlay');
   const compareModal = document.getElementById('compare-modal');
@@ -1568,154 +1716,81 @@ window.openComparisonTable = function(categoryId) {
   const compareBody = document.getElementById('compare-body');
   
   const config = CategoryConfig[categoryId];
-  compareTitle.innerText = `Comparison Summary: ${config.title}`;
+  compareTitle.innerText = `All Registered Options (Ranked): ${config.title}`;
   
   let html = '';
   
   if (categoryId === 'fd') {
     const rawDetails = calculateTopThreeDetailsFD();
     
-    // Group FDs by category
-    const grouped = {
-      PSU: [],
-      Private: [],
-      SFB: [],
-      Foreign: []
-    };
-    rawDetails.forEach(item => {
-      if (grouped[item.category]) {
-        grouped[item.category].push(item);
-      }
-    });
-    
     html += `
-      <p style="font-size: 13px; color: var(--color-ink-secondary); margin-bottom: 12px; line-height: 1.5;">
-        Bento summary of the <strong>top 2 highest yielding deposits</strong> across banking sectors matching your inputs.
+      <p style="font-size: 13px; color: var(--color-ink-secondary); margin-bottom: 16px; line-height: 1.5;">
+        All available Fixed Deposits ranked by net post-tax yield (highest yield to lowest). Click any row to view full maturity details.
       </p>
-      <div class="bento-grid">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="text-align: center; width: 50px;">Rank</th>
+            <th>Institution</th>
+            <th>Type</th>
+            <th>Base Rate</th>
+            <th>Senior Rate</th>
+            <th>Effective Yield (Net)</th>
+            <th>Insured (DICGC)</th>
+          </tr>
+        </thead>
+        <tbody>
     `;
-    
-    Object.entries(grouped).forEach(([catKey, items]) => {
-      const catInfo = F3Data.bankCategories[catKey] || { name: catKey, strengths: "" };
-      const topTwo = items.slice(0, 2);
-      
+    rawDetails.forEach((item, idx) => {
       html += `
-        <div class="bento-box">
-          <div style="width: 100%;">
-            <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-top: 0; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-              <span>${catInfo.name}</span>
-              <span class="tag-badge" style="font-size: 9px; padding: 2px 6px; background-color: var(--color-accent-lime); color: var(--color-ink-primary); font-weight: 600;">Top 2</span>
-            </h4>
-            <p style="font-size: 11px; color: var(--color-ink-secondary); margin-top: 0; margin-bottom: 12px; font-style: italic;">
-              Best for: ${catInfo.strengths}
-            </p>
-      `;
-      
-      if (topTwo.length === 0) {
-        html += `<p style="font-size: 12px; color: var(--color-ink-muted); margin: 8px 0;">No matching options.</p>`;
-      } else {
-        topTwo.forEach(bank => {
-          html += `
-            <div class="bento-item">
-              <span class="bento-bank-name">${bank.bankName}</span>
-              <div style="text-align: right;">
-                <span class="bento-bank-rate">${bank.effectiveYield.toFixed(2)}%</span>
-                <span style="display: block; font-size: 10px; color: var(--color-ink-muted);">Base: ${bank.rate.toFixed(2)}%</span>
-              </div>
-            </div>
-          `;
-        });
-      }
-      
-      html += `
-          </div>
-        </div>
+        <tr onclick="closeDrawers(); setTimeout(() => openDrillIn('fd', ${idx}), 310)" style="cursor: pointer;">
+          <td style="font-weight: bold; text-align: center;">${idx + 1}</td>
+          <td><strong>${item.bankName}</strong></td>
+          <td>${item.category}</td>
+          <td>${item.headlineRate.toFixed(2)}%</td>
+          <td>${item.seniorRate.toFixed(2)}%</td>
+          <td style="font-weight: 600; color: var(--color-success);">${item.effectiveYield.toFixed(2)}%</td>
+          <td>${item.dicgcProtected ? 'Yes (₹5 L)' : 'No'}</td>
+        </tr>
       `;
     });
-    
-    html += `</div>`;
-    
-    // Add "See All" button
-    html += `
-      <div style="text-align: center; margin-top: 16px; border-top: 1.5px solid var(--color-paper-border); padding-top: 16px;">
-        <button class="btn btn-primary" onclick="showFullComparisonTableFD()" style="padding: 10px 20px; font-size: 14px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
-          See All Deposits (Full Table View)
-        </button>
-      </div>
-    `;
+    html += `</tbody></table>`;
     
   } else if (categoryId === 'loans') {
     const rawDetails = calculateTopThreeDetailsLoans();
     
-    const grouped = {
-      PSU: [],
-      Private: [],
-      SFB: [],
-      NBFC: []
-    };
-    rawDetails.forEach(item => {
-      if (grouped[item.bankCategory]) {
-        grouped[item.bankCategory].push(item);
-      }
-    });
-    
     html += `
-      <p style="font-size: 13px; color: var(--color-ink-secondary); margin-bottom: 12px; line-height: 1.5;">
-        Bento summary of the <strong>top 2 lowest effective rate loans</strong> across lending categories.
+      <p style="font-size: 13px; color: var(--color-ink-secondary); margin-bottom: 16px; line-height: 1.5;">
+        All available Loans ranked by effective amortized rate (lowest rate to highest). Click any row to view simulator.
       </p>
-      <div class="bento-grid">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="text-align: center; width: 50px;">Rank</th>
+            <th>Bank</th>
+            <th>Category</th>
+            <th>Base Rate</th>
+            <th>Processing Fee</th>
+            <th>Effective Amortized Rate</th>
+            <th>Primary Strengths</th>
+          </tr>
+        </thead>
+        <tbody>
     `;
-    
-    Object.entries(grouped).forEach(([catKey, items]) => {
-      const catInfo = F3Data.bankCategories[catKey] || { name: catKey, strengths: "" };
-      const topTwo = items.slice(0, 2);
-      
+    rawDetails.forEach((item, idx) => {
       html += `
-        <div class="bento-box">
-          <div style="width: 100%;">
-            <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-top: 0; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-              <span>${catInfo.name}</span>
-              <span class="tag-badge" style="font-size: 9px; padding: 2px 6px; background-color: var(--color-accent-lime); color: var(--color-ink-primary); font-weight: 600;">Top 2</span>
-            </h4>
-            <p style="font-size: 11px; color: var(--color-ink-secondary); margin-top: 0; margin-bottom: 12px; font-style: italic;">
-              Best for: ${catInfo.strengths}
-            </p>
-      `;
-      
-      if (topTwo.length === 0) {
-        html += `<p style="font-size: 12px; color: var(--color-ink-muted); margin: 8px 0;">No matching options.</p>`;
-      } else {
-        topTwo.forEach(loan => {
-          html += `
-            <div class="bento-item">
-              <span class="bento-bank-name">${loan.bankName}</span>
-              <div style="text-align: right;">
-                <span class="bento-bank-rate">${loan.effectiveRate.toFixed(2)}%</span>
-                <span style="display: block; font-size: 10px; color: var(--color-ink-muted);">Base: ${loan.activeRate.toFixed(2)}%</span>
-              </div>
-            </div>
-          `;
-        });
-      }
-      
-      html += `
-          </div>
-        </div>
+        <tr onclick="closeDrawers(); setTimeout(() => openDrillIn('loans', ${idx}), 310)" style="cursor: pointer;">
+          <td style="font-weight: bold; text-align: center;">${idx + 1}</td>
+          <td><strong>${item.bankName}</strong></td>
+          <td>${item.bankCategory}</td>
+          <td>${item.activeRate.toFixed(2)}%</td>
+          <td>${item.processingFeePercent}% (Cap ₹${item.processingFeeCap.toLocaleString()})</td>
+          <td style="font-weight: 600; color: var(--color-ink-primary);">${item.effectiveRate.toFixed(2)}%</td>
+          <td>${item.suitability}</td>
+        </tr>
       `;
     });
-    
-    html += `</div>`;
-    
-    // Add "See All" button
-    html += `
-      <div style="text-align: center; margin-top: 16px; border-top: 1.5px solid var(--color-paper-border); padding-top: 16px;">
-        <button class="btn btn-primary" onclick="showFullComparisonTableLoans()" style="padding: 10px 20px; font-size: 14px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 6px; vertical-align: middle;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
-          See All Loans (Full Table View)
-        </button>
-      </div>
-    `;
+    html += `</tbody></table>`;
     
   } else if (categoryId === 'mf') {
     let list = [...F3Data.mutualFunds];
@@ -1750,103 +1825,17 @@ window.openComparisonTable = function(categoryId) {
     });
     html += `</tbody></table>`;
   } else {
-    // Generic simple list table
     html += `<p style="color: var(--color-ink-secondary);">Complete grid breakdown of all registered options in F3 data store.</p>`;
   }
   
   compareBody.innerHTML = html;
   
-  // Show comparison Modal
   compareOverlay.style.display = 'block';
   compareModal.style.display = 'flex';
   setTimeout(() => {
     compareOverlay.classList.add('active');
     compareModal.classList.add('active');
   }, 10);
-};
-
-window.showFullComparisonTableFD = function() {
-  const compareBody = document.getElementById('compare-body');
-  const rawDetails = calculateTopThreeDetailsFD();
-  
-  let html = `
-    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <button class="back-btn" onclick="openComparisonTable('fd')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; vertical-align: middle;"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Bento Summary
-      </button>
-      <span style="font-size: 11px; color: var(--color-ink-muted); font-weight: 600;">FULL REGISTRY</span>
-    </div>
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th>Institution</th>
-          <th>Type</th>
-          <th>Base Rate</th>
-          <th>Senior Rate</th>
-          <th>Effective Yield (Net)</th>
-          <th>Insured (DICGC)</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  rawDetails.forEach(item => {
-    html += `
-      <tr>
-        <td><strong>${item.bankName}</strong></td>
-        <td>${item.category}</td>
-        <td>${item.headlineRate.toFixed(2)}%</td>
-        <td>${item.seniorRate.toFixed(2)}%</td>
-        <td style="font-weight: 600; color: var(--color-success);">${item.effectiveYield.toFixed(2)}%</td>
-        <td>${item.dicgcProtected ? 'Yes (₹5 Lakhs)' : 'No'}</td>
-      </tr>
-    `;
-  });
-  html += `</tbody></table>`;
-  
-  compareBody.innerHTML = html;
-};
-
-window.showFullComparisonTableLoans = function() {
-  const compareBody = document.getElementById('compare-body');
-  const rawDetails = calculateTopThreeDetailsLoans();
-  
-  let html = `
-    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <button class="back-btn" onclick="openComparisonTable('loans')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right: 4px; vertical-align: middle;"><polyline points="15 18 9 12 15 6"/></svg>
-        Back to Bento Summary
-      </button>
-      <span style="font-size: 11px; color: var(--color-ink-muted); font-weight: 600;">FULL REGISTRY</span>
-    </div>
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th>Bank</th>
-          <th>Category</th>
-          <th>Base Rate</th>
-          <th>Processing Fee</th>
-          <th>Effective Amortized Rate</th>
-          <th>Primary Strengths</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  rawDetails.forEach(item => {
-    html += `
-      <tr>
-        <td><strong>${item.bankName}</strong></td>
-        <td>${item.bankCategory}</td>
-        <td>${item.activeRate.toFixed(2)}%</td>
-        <td>${item.processingFeePercent}% (Cap ₹${item.processingFeeCap.toLocaleString()})</td>
-        <td style="font-weight: 600; color: var(--color-ink-primary);">${item.effectiveRate.toFixed(2)}%</td>
-        <td>${item.suitability}</td>
-      </tr>
-    `;
-  });
-  html += `</tbody></table>`;
-  
-  compareBody.innerHTML = html;
 };
 
 // 10. CLOSING CONTROLS FOR DRAWERS & MODALS
