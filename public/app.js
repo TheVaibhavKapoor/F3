@@ -61,19 +61,18 @@ const AppState = {
   }
 };
 
-// Supabase & Authentication Global Instances
-let supabase = null;
-function initSupabase() {
-  const url = localStorage.getItem('f3_supabase_url') || 'https://ihjchrkjhlejofdjiams.supabase.co';
-  const key = localStorage.getItem('f3_supabase_key') || 'sb_publishable_SaJDLxtk7doLlBMD5tHwyg_FTVp3Qbp';
-  if (url && key && window.supabase) {
-    try {
-      supabase = window.supabase.createClient(url, key);
-      console.log("[F3 AUTH] Real Supabase Client initialized successfully with active backend database.");
-    } catch (e) {
-      console.error("[F3 AUTH] Failed to initialize Supabase client:", e);
-    }
-  }
+// Global Google Client ID loader from Backend Config API
+let googleClientId = '246759667299-eiocjbu5p9cfqk0osv840tvbvqrivajs.apps.googleusercontent.com';
+function loadBackendConfig() {
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(data => {
+      if (data.googleClientId) {
+        googleClientId = data.googleClientId;
+        console.log("[F3 AUTH] Loaded Google Client ID from backend config.");
+      }
+    })
+    .catch(err => console.warn("[F3 AUTH] Failed to fetch backend config:", err.message));
 }
 
 // 2. CATEGORY CONFIGURATIONS & WIZARD STEPS
@@ -1890,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', () => {
     AppState.user = JSON.parse(savedUser);
   }
   
-  initSupabase(); // Initialize Supabase if keys exist
+  loadBackendConfig(); // Load configuration from Express backend server
   initNavigation();
   renderActiveTabContent();
   renderSidebarUserPanel();
@@ -1938,23 +1937,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('chatbot-close').addEventListener('click', toggleChatbot);
 });
 
-// 12. REAL & SANDBOX HYBRID AUTHENTICATION SYSTEM
-// Inject visual toast styling keyframes
-if (typeof document !== 'undefined') {
-  const styleEl = document.createElement('style');
-  styleEl.innerHTML = `
-    @keyframes slideInRight {
-      from { transform: translateX(120%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; transform: scale(1); }
-      to { opacity: 0; transform: scale(0.9); }
-    }
-  `;
-  document.head.appendChild(styleEl);
-}
-
 // Global initialize Google GIS
 window.initGoogleSignIn = function() {
   if (typeof google === 'undefined' || !google.accounts) {
@@ -1962,25 +1944,33 @@ window.initGoogleSignIn = function() {
     return;
   }
   
-  const googleClientId = localStorage.getItem('f3_google_client_id') || '246759667299-eiocjbu5p9cfqk0osv840tvbvqrivajs.apps.googleusercontent.com';
-  
   try {
     google.accounts.id.initialize({
       client_id: googleClientId,
       callback: (res) => {
-        const payload = decodeJwtPayload(res.credential);
-        const user = {
-          name: payload.name || "Vaibhav Kapoor",
-          email: payload.email || "vaibhav.kapoor@gmail.com",
-          avatar: payload.picture || (payload.name ? payload.name[0] : "VK"),
-          method: 'Google GIS SDK'
-        };
-        loginUser(user);
+        // Post the token to our Express backend for secure validation
+        fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: res.credential })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.user) {
+            loginUser(data.user);
+          } else {
+            throw new Error(data.error || 'Backend verification failed');
+          }
+        })
+        .catch(err => {
+          console.error("[F3 AUTH] Google backend verification failure:", err);
+          showSandboxNotification("Auth Verification Error", "Backend could not verify Google Token: " + err.message);
+        });
       },
       error_callback: (err) => {
         console.error("GIS Sign-in error:", err);
         showSandboxNotification("Google Auth Warning", "Real SSO failed or origin mismatch in developer console. Using fallback profile.");
-        triggerGmailLogin(); // fallback simulation popup
+        triggerGmailLogin();
       }
     });
     
@@ -2092,8 +2082,7 @@ window.renderAuthModalTab = function(tabName) {
   if (tabName === 'login') {
     body.innerHTML = `
       <div style="display: flex; border-bottom: 2px solid var(--color-paper-border); margin-bottom: 20px; gap: 16px; padding-bottom: 8px;">
-        <button onclick="renderAuthModalTab('login')" style="background: none; border: none; font-weight: 700; color: var(--color-ink-primary); cursor: pointer; font-size: 14px; border-bottom: 2.5px solid var(--color-lime-accent); padding-bottom: 6px;">Sign In</button>
-        <button onclick="renderAuthModalTab('settings')" style="background: none; border: none; font-weight: 600; color: var(--color-ink-secondary); cursor: pointer; font-size: 14px; padding-bottom: 6px; opacity: 0.8;">Connection Settings</button>
+        <button style="background: none; border: none; font-weight: 700; color: var(--color-ink-primary); cursor: pointer; font-size: 14px; border-bottom: 2.5px solid var(--color-lime-accent); padding-bottom: 6px;">Sign In</button>
       </div>
       
       <div style="text-align: center; margin-bottom: 20px;">
@@ -2134,77 +2123,7 @@ window.renderAuthModalTab = function(tabName) {
     setTimeout(() => {
       if (window.google) initGoogleSignIn();
     }, 100);
-    
-  } else if (tabName === 'settings') {
-    const currentGoogleClientId = localStorage.getItem('f3_google_client_id') || '246759667299-eiocjbu5p9cfqk0osv840tvbvqrivajs.apps.googleusercontent.com';
-    const currentSupaUrl = localStorage.getItem('f3_supabase_url') || 'https://ihjchrkjhlejofdjiams.supabase.co';
-    const currentSupaKey = localStorage.getItem('f3_supabase_key') || 'sb_publishable_SaJDLxtk7doLlBMD5tHwyg_FTVp3Qbp';
-    const statusText = supabase ? '<span style="color:var(--color-success);">🟢 Active Supabase Client</span>' : '⚪ Sandbox Mock Mode';
-    
-    body.innerHTML = `
-      <div style="display: flex; border-bottom: 2px solid var(--color-paper-border); margin-bottom: 20px; gap: 16px; padding-bottom: 8px;">
-        <button onclick="renderAuthModalTab('login')" style="background: none; border: none; font-weight: 600; color: var(--color-ink-secondary); cursor: pointer; font-size: 14px; padding-bottom: 6px; opacity: 0.8;">Sign In</button>
-        <button onclick="renderAuthModalTab('settings')" style="background: none; border: none; font-weight: 700; color: var(--color-ink-primary); cursor: pointer; font-size: 14px; border-bottom: 2.5px solid var(--color-lime-accent); padding-bottom: 6px;">Connection Settings</button>
-      </div>
-      
-      <div style="margin-bottom: 16px;">
-        <p style="font-size: 12px; color: var(--color-ink-secondary); line-height: 1.5; margin: 0 0 8px 0;">
-          Configure live credentials below to bypass simulated inputs and query real Auth endpoints.
-        </p>
-        <div style="font-size: 11px; font-weight: 600;">Status: ${statusText}</div>
-      </div>
-      
-      <div class="auth-input-group">
-        <label for="settings-google-client-id">Google Client ID</label>
-        <input type="text" id="settings-google-client-id" class="auth-input-field" value="${currentGoogleClientId}" placeholder="client-id.apps.googleusercontent.com">
-      </div>
-      
-      <div class="auth-input-group">
-        <label for="settings-supabase-url">Supabase API URL</label>
-        <input type="url" id="settings-supabase-url" class="auth-input-field" value="${currentSupaUrl}" placeholder="https://xyz.supabase.co">
-      </div>
-      
-      <div class="auth-input-group">
-        <label for="settings-supabase-key">Supabase Public Anon Key</label>
-        <input type="password" id="settings-supabase-key" class="auth-input-field" value="${currentSupaKey}" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-      </div>
-      
-      <div style="display: flex; gap: 12px; margin-top: 24px;">
-        <button class="btn btn-primary" onclick="saveAuthCredentials()" style="flex: 1; padding: 12px;">Save Connection</button>
-        <button class="btn btn-secondary" onclick="clearAuthCredentials()" style="padding: 12px;">Reset</button>
-      </div>
-    `;
   }
-};
-
-window.saveAuthCredentials = function() {
-  const gId = document.getElementById('settings-google-client-id').value.trim();
-  const url = document.getElementById('settings-supabase-url').value.trim();
-  const key = document.getElementById('settings-supabase-key').value.trim();
-  
-  if (gId) localStorage.setItem('f3_google_client_id', gId);
-  else localStorage.removeItem('f3_google_client_id');
-  
-  if (url && key) {
-    localStorage.setItem('f3_supabase_url', url);
-    localStorage.setItem('f3_supabase_key', key);
-  } else {
-    localStorage.removeItem('f3_supabase_url');
-    localStorage.removeItem('f3_supabase_key');
-  }
-  
-  initSupabase();
-  alert("Auth configuration credentials updated successfully!");
-  renderAuthModalTab('login');
-};
-
-window.clearAuthCredentials = function() {
-  localStorage.removeItem('f3_google_client_id');
-  localStorage.removeItem('f3_supabase_url');
-  localStorage.removeItem('f3_supabase_key');
-  supabase = null;
-  alert("Config settings reset to default fallback options.");
-  renderAuthModalTab('settings');
 };
 
 window.closeAuthModal = function() {
@@ -2219,31 +2138,16 @@ window.closeAuthModal = function() {
 };
 
 window.triggerGoogleLogin = async function() {
-  if (supabase) {
+  // If google identity services scripts loaded, trigger GSI One-Tap or button popup
+  if (window.google && window.google.accounts) {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname
-        }
-      });
-      if (error) throw error;
-    } catch (e) {
-      console.error("[F3 SUPABASE] OAuth initiation failed:", e);
-      alert("Supabase Google Login failed: " + e.message);
-    }
-  } else {
-    // If google identity services scripts loaded, trigger GSI One-Tap or button popup
-    if (window.google && window.google.accounts) {
-      try {
-        window.google.accounts.id.prompt();
-      } catch (err) {
-        console.warn("GIS prompt failed, using visual simulator.", err);
-        triggerGmailLogin();
-      }
-    } else {
+      window.google.accounts.id.prompt();
+    } catch (err) {
+      console.warn("GIS prompt failed, using visual simulator.", err);
       triggerGmailLogin();
     }
+  } else {
+    triggerGmailLogin();
   }
 };
 
@@ -2333,38 +2237,29 @@ window.sendOTP = async function(type) {
   
   showOTPVerifyScreen(type, value);
   
-  if (supabase) {
-    try {
-      let result;
-      if (type === 'email') {
-        result = await supabase.auth.signInWithOtp({
-          email: value,
-          options: { shouldCreateUser: true }
-        });
-      } else {
-        result = await supabase.auth.signInWithOtp({
-          phone: value,
-          options: { shouldCreateUser: true }
-        });
-      }
-      if (result.error) throw result.error;
-      showSandboxNotification("Supabase OTP", `Verification token dispatched to ${value} via active Supabase API.`);
-    } catch (err) {
-      console.warn("Supabase OTP dispatch failed:", err.message);
-      // fallback sandbox code
-      const sandboxCode = Math.floor(1000 + Math.random() * 9000).toString();
-      localStorage.setItem('f3_sandbox_otp', sandboxCode);
-      showSandboxNotification("Developer Sandbox SMS", `[FALLBACK] Your 4-digit code is: ${sandboxCode}`);
+  // Call backend proxy OTP dispatch API
+  fetch('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, value })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showSandboxNotification("F³ Authentication", `Verification code sent securely via active backend connection.`);
+    } else {
+      throw new Error(data.error);
     }
-  } else {
-    // Pure Sandbox mode
+  })
+  .catch(err => {
+    console.warn("Backend OTP send failed. Triggering sandbox fallback:", err.message);
     const sandboxCode = Math.floor(1000 + Math.random() * 9000).toString();
     localStorage.setItem('f3_sandbox_otp', sandboxCode);
     showSandboxNotification(
       type === 'email' ? "Email Inbox (F³)" : "SMS Push Notification", 
       `Verification code for F³: ${sandboxCode}. Valid for 5 minutes.`
     );
-  }
+  });
 };
 
 function showOTPVerifyScreen(type, value) {
@@ -2415,60 +2310,22 @@ window.verifyOTP = async function(type, identifier) {
     return;
   }
   
-  if (supabase) {
-    try {
-      let result;
-      if (type === 'email') {
-        result = await supabase.auth.verifyOtp({
-          email: identifier,
-          token: enteredCode,
-          type: 'signup'
-        });
-      } else {
-        result = await supabase.auth.verifyOtp({
-          phone: identifier,
-          token: enteredCode,
-          type: 'sms'
-        });
-      }
-      if (result.error && type === 'email') {
-        // Try fallback verify type
-        result = await supabase.auth.verifyOtp({
-          email: identifier,
-          token: enteredCode,
-          type: 'email'
-        });
-      }
-      if (result.error) throw result.error;
-      
-      const sessionUser = result.data.user;
-      const user = {
-        name: sessionUser.email ? sessionUser.email.split('@')[0] : `User ${sessionUser.phone.slice(-4)}`,
-        email: sessionUser.email || '',
-        phone: sessionUser.phone || '',
-        avatar: sessionUser.email ? sessionUser.email[0].toUpperCase() : '📱',
-        method: 'Supabase API Verification'
-      };
-      loginUser(user);
-    } catch (err) {
-      console.warn("Supabase verify failure, checking Sandbox fallback:", err.message);
-      const sandboxOtp = localStorage.getItem('f3_sandbox_otp');
-      if (enteredCode === sandboxOtp || enteredCode === '1234') {
-        let name = identifier.split('@')[0];
-        if (type === 'phone') name = `User ${identifier.slice(-4)}`;
-        loginUser({
-          name,
-          email: type === 'email' ? identifier : '',
-          phone: type === 'phone' ? identifier : '',
-          avatar: type === 'email' ? name.substring(0,2).toUpperCase() : '📱',
-          method: 'Sandbox OTP (Bypass)'
-        });
-      } else {
-        alert("Verification failed: " + err.message);
-      }
+  // Call backend verification API
+  fetch('/api/auth/verify-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, value: identifier, token: enteredCode })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success && data.user) {
+      loginUser(data.user);
+    } else {
+      throw new Error(data.error || 'Verification failed');
     }
-  } else {
-    // Sandbox checking
+  })
+  .catch(err => {
+    console.warn("Backend verification failed. Checking sandbox fallback:", err.message);
     const sandboxOtp = localStorage.getItem('f3_sandbox_otp');
     if (enteredCode === sandboxOtp || enteredCode === '1234') {
       let name = identifier.split('@')[0];
@@ -2477,13 +2334,13 @@ window.verifyOTP = async function(type, identifier) {
         name,
         email: type === 'email' ? identifier : '',
         phone: type === 'phone' ? identifier : '',
-        avatar: type === 'email' ? name.substring(0,2).toUpperCase() : '📱',
-        method: 'Sandbox Verification'
+        avatar: type === 'email' ? name.substring(0, 2).toUpperCase() : '📱',
+        method: 'Sandbox OTP (Fallback)'
       });
     } else {
-      alert("Invalid code. Enter the verification code shown in the notification banner.");
+      alert("Verification failed: " + err.message);
     }
-  }
+  });
 };
 
 function loginUser(user) {
