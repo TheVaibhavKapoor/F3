@@ -621,8 +621,8 @@ function renderActiveTabContent() {
   const container = document.getElementById('app-content');
   updatePrefillStatusBadge();
   
-  if (AppState.currentCategory) {
-    // We are currently in a wizard flow or results view
+  if (AppState.isShowingResults) {
+    // We are currently in results view
     return;
   }
   
@@ -644,14 +644,16 @@ function renderActiveTabContent() {
     if (AppState.activeTab === 'security' && ['life_ins', 'health_ins', 'vehicle_ins', 'home_ins', 'business_ins', 'remittance'].includes(key)) belongsToTab = true;
     
     if (belongsToTab) {
+      const isActive = AppState.currentCategory === key;
       html += `
-        <div class="category-card" onclick="startWizard('${key}')" role="button" tabindex="0">
+        <div class="category-card ${isActive ? 'active' : ''}" id="card-${key}" onclick="toggleWizard('${key}')" role="button" tabindex="0">
           <div class="category-icon">
             ${config.icon}
           </div>
           <h3>${config.title}</h3>
           <p>${config.desc}</p>
         </div>
+        <div id="wizard-container-${key}" class="inline-wizard-container ${isActive ? 'expanded' : ''}"></div>
       `;
     }
   });
@@ -662,18 +664,64 @@ function renderActiveTabContent() {
   `;
   
   container.innerHTML = html;
+  
+  // If there's an active category, render its step after the grid is drawn
+  if (AppState.currentCategory) {
+    renderWizardStep();
+  }
 }
 
 // 4. WIZARD ENGINE
-window.startWizard = function(categoryId) {
+window.toggleWizard = function(categoryId) {
+  if (AppState.currentCategory === categoryId) {
+    // Close the current active wizard
+    const container = document.getElementById(`wizard-container-${categoryId}`);
+    const card = document.getElementById(`card-${categoryId}`);
+    if(container) container.classList.remove('expanded');
+    if(card) card.classList.remove('active');
+    setTimeout(() => {
+      if(container) container.innerHTML = '';
+      AppState.currentCategory = null;
+    }, 300);
+    return;
+  }
+  
+  // Close previously open wizard if exists
+  if (AppState.currentCategory) {
+    const oldKey = AppState.currentCategory;
+    const oldContainer = document.getElementById(`wizard-container-${oldKey}`);
+    const oldCard = document.getElementById(`card-${oldKey}`);
+    if(oldContainer) oldContainer.classList.remove('expanded');
+    if(oldCard) oldCard.classList.remove('active');
+    if(oldContainer) oldContainer.innerHTML = '';
+  }
+  
   AppState.currentCategory = categoryId;
   AppState.currentStep = 0;
   
+  const newCard = document.getElementById(`card-${categoryId}`);
+  if(newCard) newCard.classList.add('active');
+  
   renderWizardStep();
+  
+  setTimeout(() => {
+    const newContainer = document.getElementById(`wizard-container-${categoryId}`);
+    if(newContainer) {
+      newContainer.classList.add('expanded');
+      // Scroll smoothly to it
+      newContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 10);
+};
+
+window.startWizard = function(categoryId) {
+  // Kept for backwards compatibility with any other calls
+  toggleWizard(categoryId);
 };
 
 function renderWizardStep() {
-  const container = document.getElementById('app-content');
+  const container = document.getElementById(`wizard-container-${AppState.currentCategory}`);
+  if (!container) return;
   const config = CategoryConfig[AppState.currentCategory];
   const step = config.steps[AppState.currentStep];
   const isLastStep = AppState.currentStep === config.steps.length - 1;
@@ -818,8 +866,12 @@ function renderWizardStep() {
 }
 
 window.cancelWizard = function() {
-  AppState.currentCategory = null;
-  renderActiveTabContent();
+  if (AppState.currentCategory) {
+    toggleWizard(AppState.currentCategory);
+  } else {
+    AppState.isShowingResults = false;
+    renderActiveTabContent();
+  }
 };
 
 window.wizardBack = function() {
@@ -827,7 +879,7 @@ window.wizardBack = function() {
     AppState.currentStep--;
     renderWizardStep();
   } else {
-    cancelWizard();
+    toggleWizard(AppState.currentCategory);
   }
 };
 
@@ -847,6 +899,7 @@ window.skipWizard = function() {
     });
   });
   
+  AppState.isShowingResults = true;
   showResults();
 };
 
@@ -947,6 +1000,7 @@ function updatePrefillStatusBadge() {
 // 6. RANKING & RESULTS GENERATION
 // 6. RANKING & RESULTS GENERATION
 window.showResults = function() {
+  AppState.isShowingResults = true;
   const container = document.getElementById('app-content');
   const categoryId = AppState.currentCategory;
   const config = CategoryConfig[categoryId];
@@ -954,7 +1008,7 @@ window.showResults = function() {
   let html = `
     <div class="results-container">
       <div class="results-header">
-        <button class="back-btn" onclick="startWizard('${categoryId}')">
+        <button class="back-btn" onclick="AppState.isShowingResults = false; renderActiveTabContent();">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           Adjust Inputs
         </button>

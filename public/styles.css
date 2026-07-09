@@ -449,6 +449,25 @@ button, input, select, textarea {
   color: var(--color-ink-secondary);
 }
 
+.category-card.active {
+  border-color: var(--color-lime-accent);
+  box-shadow: 0 0 0 1px var(--color-lime-accent);
+}
+
+.inline-wizard-container {
+  grid-column: 1 / -1;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.inline-wizard-container.expanded {
+  max-height: 1200px;
+  opacity: 1;
+  margin-bottom: 16px;
+}
+
 /* Input Flow Wizard */
 .flow-wizard {
   background-color: var(--color-paper-card);
