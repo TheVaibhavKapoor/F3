@@ -1258,14 +1258,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .otp-inputs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: center;
   margin: 20px 0;
+  flex-wrap: wrap;
 }
 .otp-digit {
-  width: 48px;
-  height: 48px;
-  font-size: 24px;
+  width: 34px;
+  height: 44px;
+  font-size: 20px;
   text-align: center;
   font-weight: 700;
   border: 2px solid var(--color-ink-primary);
