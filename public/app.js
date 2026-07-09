@@ -58,7 +58,52 @@ const AppState = {
   // Track how many parameters have been saved
   get prefillCount() {
     return Object.values(this.prefills).filter(val => val !== null && (Array.isArray(val) ? val.length > 0 : true)).length;
+  },
+
+  // Persistent card order per tab (drag-to-reorder)
+  categoryOrder: {
+    invest: ['fd', 'mf', 'bonds', 'ipo'],
+    expenses: ['tx_analysis', 'cc_selector', 'trip_planner', 'expense_planner'],
+    loans: ['loans'],
+    security: ['life_ins', 'health_ins', 'vehicle_ins', 'home_ins', 'business_ins', 'remittance']
   }
+};
+
+// Drag-and-drop state
+let _dragSrcKey = null;
+
+window.onCardDragStart = function(key, e) {
+  if (AppState.currentCategory) { e.preventDefault(); return; } // no drag while wizard open
+  _dragSrcKey = key;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const card = document.getElementById(`card-${key}`);
+    if (card) card.classList.add('dragging');
+  }, 0);
+};
+
+window.onCardDragOver = function(targetKey, e) {
+  e.preventDefault();
+  if (!_dragSrcKey || _dragSrcKey === targetKey) return;
+  const order = AppState.categoryOrder[AppState.activeTab];
+  const srcIdx = order.indexOf(_dragSrcKey);
+  const tgtIdx = order.indexOf(targetKey);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+  // Swap positions in array
+  order.splice(srcIdx, 1);
+  order.splice(tgtIdx, 0, _dragSrcKey);
+  // Update CSS order live (no re-render)
+  order.forEach((k, i) => {
+    const c = document.getElementById(`card-${k}`);
+    if (c) c.style.order = i;
+  });
+};
+
+window.onCardDrop = function(e) { e.preventDefault(); };
+
+window.onCardDragEnd = function() {
+  document.querySelectorAll('.category-card').forEach(c => c.classList.remove('dragging'));
+  _dragSrcKey = null;
 };
 
 // Global Google Client ID loader from Backend Config API
@@ -644,9 +689,20 @@ function renderActiveTabContent() {
     if (AppState.activeTab === 'security' && ['life_ins', 'health_ins', 'vehicle_ins', 'home_ins', 'business_ins', 'remittance'].includes(key)) belongsToTab = true;
     
     if (belongsToTab) {
+      const currentOrder = AppState.categoryOrder[AppState.activeTab] || [];
+      const orderIdx = currentOrder.indexOf(key);
       const isActive = AppState.currentCategory === key;
       html += `
-        <div class="category-card ${isActive ? 'active expanded-card' : ''}" id="card-${key}" onclick="toggleWizard('${key}')" role="button" tabindex="0">
+        <div class="category-card ${isActive ? 'active expanded-card' : ''}" 
+             id="card-${key}" 
+             style="order: ${isActive ? -999 : orderIdx}"
+             onclick="toggleWizard('${key}')" 
+             role="button" tabindex="0"
+             draggable="true"
+             ondragstart="onCardDragStart('${key}', event)"
+             ondragover="onCardDragOver('${key}', event)"
+             ondrop="onCardDrop(event)"
+             ondragend="onCardDragEnd()">
           <div class="card-preview">
             <div class="category-icon">
               ${config.icon}
@@ -675,44 +731,47 @@ function renderActiveTabContent() {
 
 // 4. WIZARD ENGINE
 window.toggleWizard = function(categoryId) {
+  const currentOrder = AppState.categoryOrder[AppState.activeTab] || [];
+
   // If clicking the already-active card, close it
   if (AppState.currentCategory === categoryId) {
     const card = document.getElementById(`card-${categoryId}`);
     if (card) {
       card.classList.remove('expanded-card');
       card.classList.remove('active');
-      // Clear wizard content immediately so it doesn't show during collapse
+      // Restore original order position
+      card.style.order = currentOrder.indexOf(categoryId);
+      // Clear wizard content immediately
       const body = card.querySelector('.card-wizard-body');
       if (body) body.innerHTML = '';
     }
-    setTimeout(() => {
-      AppState.currentCategory = null;
-    }, 380);
+    setTimeout(() => { AppState.currentCategory = null; }, 380);
     return;
   }
-  
-  // Close any previously open card
+
+  // Close any previously open card and restore its order
   if (AppState.currentCategory) {
     const oldCard = document.getElementById(`card-${AppState.currentCategory}`);
     if (oldCard) {
       oldCard.classList.remove('expanded-card');
       oldCard.classList.remove('active');
-      oldCard.querySelector('.card-wizard-body').innerHTML = '';
+      oldCard.style.order = currentOrder.indexOf(AppState.currentCategory);
+      const oldBody = oldCard.querySelector('.card-wizard-body');
+      if (oldBody) oldBody.innerHTML = '';
     }
   }
-  
+
   AppState.currentCategory = categoryId;
   AppState.currentStep = 0;
-  
+
   const card = document.getElementById(`card-${categoryId}`);
   if (card) {
     card.classList.add('active');
-    // Prevent click propagation from wizard body toggling the card again
     card.querySelector('.card-wizard-body').onclick = (e) => e.stopPropagation();
-    // Render wizard content first
     renderWizardStep();
-    // Then trigger expansion on next paint
     requestAnimationFrame(() => {
+      // Float to top of grid
+      card.style.order = -999;
       card.classList.add('expanded-card');
     });
   }
