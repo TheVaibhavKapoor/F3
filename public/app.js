@@ -646,14 +646,16 @@ function renderActiveTabContent() {
     if (belongsToTab) {
       const isActive = AppState.currentCategory === key;
       html += `
-        <div class="category-card ${isActive ? 'active' : ''}" id="card-${key}" onclick="toggleWizard('${key}')" role="button" tabindex="0">
-          <div class="category-icon">
-            ${config.icon}
+        <div class="category-card ${isActive ? 'active expanded-card' : ''}" id="card-${key}" onclick="toggleWizard('${key}')" role="button" tabindex="0">
+          <div class="card-preview">
+            <div class="category-icon">
+              ${config.icon}
+            </div>
+            <h3>${config.title}</h3>
+            <p>${config.desc}</p>
           </div>
-          <h3>${config.title}</h3>
-          <p>${config.desc}</p>
+          <div class="card-wizard-body" id="wizard-body-${key}"></div>
         </div>
-        <div id="wizard-container-${key}" class="inline-wizard-container ${isActive ? 'expanded' : ''}"></div>
       `;
     }
   });
@@ -673,54 +675,57 @@ function renderActiveTabContent() {
 
 // 4. WIZARD ENGINE
 window.toggleWizard = function(categoryId) {
+  // If clicking the already-active card, close it
   if (AppState.currentCategory === categoryId) {
-    // Close the current active wizard
-    const container = document.getElementById(`wizard-container-${categoryId}`);
     const card = document.getElementById(`card-${categoryId}`);
-    if(container) container.classList.remove('expanded');
-    if(card) card.classList.remove('active');
+    if (card) {
+      card.classList.remove('expanded-card');
+      card.classList.remove('active');
+    }
     setTimeout(() => {
-      if(container) container.innerHTML = '';
       AppState.currentCategory = null;
-    }, 300);
+      // Re-render to restore pointer-events for all cards
+      document.querySelectorAll('.category-card').forEach(c => c.style.pointerEvents = '');
+    }, 380);
     return;
   }
   
-  // Close previously open wizard if exists
+  // Close any previously open card
   if (AppState.currentCategory) {
-    const oldKey = AppState.currentCategory;
-    const oldContainer = document.getElementById(`wizard-container-${oldKey}`);
-    const oldCard = document.getElementById(`card-${oldKey}`);
-    if(oldContainer) oldContainer.classList.remove('expanded');
-    if(oldCard) oldCard.classList.remove('active');
-    if(oldContainer) oldContainer.innerHTML = '';
+    const oldCard = document.getElementById(`card-${AppState.currentCategory}`);
+    if (oldCard) {
+      oldCard.classList.remove('expanded-card');
+      oldCard.classList.remove('active');
+      oldCard.querySelector('.card-wizard-body').innerHTML = '';
+    }
   }
   
   AppState.currentCategory = categoryId;
   AppState.currentStep = 0;
   
-  const newCard = document.getElementById(`card-${categoryId}`);
-  if(newCard) newCard.classList.add('active');
-  
-  renderWizardStep();
-  
-  setTimeout(() => {
-    const newContainer = document.getElementById(`wizard-container-${categoryId}`);
-    if(newContainer) {
-      newContainer.classList.add('expanded');
-      // Scroll smoothly to it
-      newContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 10);
+  const card = document.getElementById(`card-${categoryId}`);
+  if (card) {
+    card.classList.add('active');
+    // Prevent click propagation from wizard body toggling the card again
+    card.querySelector('.card-wizard-body').onclick = (e) => e.stopPropagation();
+    // Render wizard content first
+    renderWizardStep();
+    // Then trigger expansion
+    requestAnimationFrame(() => {
+      card.classList.add('expanded-card');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
 };
 
 window.startWizard = function(categoryId) {
-  // Kept for backwards compatibility with any other calls
   toggleWizard(categoryId);
 };
 
 function renderWizardStep() {
-  const container = document.getElementById(`wizard-container-${AppState.currentCategory}`);
+  const card = document.getElementById(`card-${AppState.currentCategory}`);
+  if (!card) return;
+  const container = card.querySelector('.card-wizard-body');
   if (!container) return;
   const config = CategoryConfig[AppState.currentCategory];
   const step = config.steps[AppState.currentStep];

@@ -451,21 +451,69 @@ button, input, select, textarea {
 
 .category-card.active {
   border-color: var(--color-lime-accent);
-  box-shadow: 0 0 0 1px var(--color-lime-accent);
+  box-shadow: 0 0 0 2px var(--color-lime-accent), var(--shadow-md);
 }
 
-.inline-wizard-container {
+/* Normal cards don't span extra columns */
+.category-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Expanded card takes full width and grows */
+.category-card.expanded-card {
   grid-column: 1 / -1;
-  max-height: 0;
-  overflow: hidden;
-  opacity: 0;
-  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out;
+  cursor: default;
+  min-height: auto;
 }
 
-.inline-wizard-container.expanded {
-  max-height: 1200px;
-  opacity: 1;
-  margin-bottom: 16px;
+.card-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* When expanded, card-preview switches to a horizontal header row */
+.expanded-card .card-preview {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-paper-border);
+  cursor: pointer;
+}
+
+.expanded-card .card-preview .category-icon {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.expanded-card .card-preview h3 {
+  margin-bottom: 2px;
+}
+
+.expanded-card .card-preview p {
+  margin-bottom: 0;
+}
+
+/* Wizard body inside the card */
+.card-wizard-body {
+  overflow: hidden;
+}
+
+.expanded-card .card-wizard-body .flow-wizard {
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Input Flow Wizard */
