@@ -150,29 +150,60 @@ async function main() {
     const $ = cheerio.load(html);
     const scraped = {};
 
-    // Parse tables for bank names and 1-yr rates visible on the page
-    $('table').each((_, table) => {
-      $(table).find('tr').each((_, row) => {
-        const cells = $(row).find('td');
-        if (cells.length < 3) return;
-        const bankCell = $(cells[0]).text().trim();
-        const rateCell = $(cells[1]).text().trim();
-        const rateMatch = rateCell.match(/([\d.]+)%/);
-        if (!rateMatch) return;
-        const rate = parseFloat(rateMatch[1]);
-        if (!isValidRate(rate)) return;
+    // Parse tables for bank names and specific tenure rates
+    $('table').each((i, table) => {
+      let col1yr = -1;
+      let col3yr = -1;
+      let col5yr = -1;
+      let nameCol = 0; // Usually first column
 
-        // Match bank name to our canonical list
-        for (const bankName of Object.keys(BANK_META)) {
-          const shortName = bankName.replace(' Small Finance Bank', '').replace(' Bank', '').toLowerCase();
-          if (bankCell.toLowerCase().includes(shortName)) {
-            if (!scraped[bankName]) scraped[bankName] = {};
-            // Map to 1yr slot if no tenure context
-            if (!scraped[bankName]['1']) scraped[bankName]['1'] = rate;
-            break;
-          }
-        }
+      const rows = $(table).find('tr');
+      
+      // Check first 2 rows for headers
+      rows.slice(0, 2).each((rIdx, row) => {
+        $(row).find('th, td').each((cIdx, cell) => {
+          const text = $(cell).text().trim().toLowerCase();
+          if (text.includes('1-year') || text.includes('1 year')) col1yr = cIdx;
+          if (text.includes('3-year') || text.includes('3 year')) col3yr = cIdx;
+          if (text.includes('5-year') || text.includes('5 year')) col5yr = cIdx;
+        });
       });
+
+      if (col1yr !== -1) {
+        // Parse data rows
+        rows.slice(1).each((_, row) => {
+          const cells = $(row).find('td');
+          if (cells.length < 3) return;
+          
+          const bankCell = $(cells[nameCol]).text().trim();
+          if (!bankCell || bankCell.toLowerCase().includes('slab') || bankCell.toLowerCase().includes('citizens')) return;
+
+          const getRate = (cIdx) => {
+            if (cIdx === -1 || !cells[cIdx]) return null;
+            const match = $(cells[cIdx]).text().trim().match(/([\d.]+)/);
+            return match ? parseFloat(match[1]) : null;
+          };
+
+          const r1 = getRate(col1yr);
+          const r3 = getRate(col3yr);
+          const r5 = getRate(col5yr);
+
+          // Match bank name to our canonical list
+          for (const bankName of Object.keys(BANK_META)) {
+            // Adjust names for matching (e.g. IndusInd vs Induslnd)
+            const shortName = bankName.replace(' Small Finance Bank', '').replace(' Bank', '').toLowerCase();
+            const cellName = bankCell.replace(' Small Finance Bank', '').replace(' Bank', '').toLowerCase();
+            
+            if (cellName.includes(shortName) || shortName.includes(cellName)) {
+              if (!scraped[bankName]) scraped[bankName] = {};
+              if (r1 && isValidRate(r1)) scraped[bankName]['1'] = r1;
+              if (r3 && isValidRate(r3)) scraped[bankName]['3'] = r3;
+              if (r5 && isValidRate(r5)) scraped[bankName]['5'] = r5;
+              break;
+            }
+          }
+        });
+      }
     });
 
     const scrapeCount = Object.keys(scraped).length;
@@ -182,20 +213,37 @@ async function main() {
       throw new Error('Too few banks scraped — falling back to baseline.');
     }
 
-    // Merge scraped 1yr rates with baseline for other tenures
+    // Merge scraped rates with baseline
     const merged = {};
     for (const [bank, baseline] of Object.entries(BASELINE_RATES)) {
       merged[bank] = { ...baseline };
-      if (scraped[bank]?.['1'] && isValidRate(scraped[bank]['1'])) {
-        const diff = scraped[bank]['1'] - baseline['1'];
-        // Apply proportional shift to all tenures
-        for (const yr of Object.keys(merged[bank])) {
-          merged[bank][yr] = +(merged[bank][yr] + diff).toFixed(2);
+      
+      const s = scraped[bank];
+      if (s) {
+        if (s['1']) merged[bank]['1'] = s['1'];
+        if (s['3']) merged[bank]['3'] = s['3'];
+        if (s['5']) merged[bank]['5'] = s['5'];
+        
+        // Interpolate 2-year if 1 and 3 are present
+        if (s['1'] && s['3']) {
+          merged[bank]['2'] = +((s['1'] + s['3']) / 2).toFixed(2);
+        } else if (s['1']) {
+          // If only 1-year is present, do a flat shift for the rest
+          const diff = s['1'] - baseline['1'];
+          for (const yr of Object.keys(merged[bank])) {
+            if (yr !== '1') merged[bank][yr] = +(baseline[yr] + diff).toFixed(2);
+          }
+        }
+
+        // For 7-year, shift it relative to the 5-year rate
+        if (s['5']) {
+          const diff5 = s['5'] - baseline['5'];
+          merged[bank]['7'] = +(baseline['7'] + diff5).toFixed(2);
         }
       }
     }
 
-    output = buildOutput(merged, 'Paisabazaar (auto-scraped) + official baseline');
+    output = buildOutput(merged, 'Paisabazaar (multi-tenure) + baseline');
     console.log(`💾 Built output with ${output.banks.length} banks.`);
 
   } catch (err) {

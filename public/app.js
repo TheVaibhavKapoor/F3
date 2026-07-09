@@ -1121,6 +1121,9 @@ window.showResults = function() {
       }
     });
     
+    const years = AppState.prefills.tenure || 3;
+    const isSenior = AppState.prefills.seniorCitizen === 'yes';
+
     html += `
       <div class="bento-grid" style="margin-top: 16px;">
     `;
@@ -1146,13 +1149,14 @@ window.showResults = function() {
       } else {
         topTwo.forEach(bank => {
           const overallIdx = rawDetails.findIndex(r => r.bankName === bank.bankName);
+          const currentRateLabel = isSenior ? "Senior" : "Base";
           html += `
             <div class="bento-item" onclick="openDrillIn('fd', ${overallIdx})" style="cursor: pointer;" role="button">
               <span class="bento-bank-name">${bank.bankName}</span>
               <div style="text-align: right; display: flex; align-items: center; gap: 8px;">
                 <div style="text-align: right;">
                   <span class="bento-bank-rate">${bank.effectiveYield.toFixed(2)}%</span>
-                  <span style="display: block; font-size: 9px; color: var(--color-ink-muted);">Base: ${bank.rate.toFixed(2)}%</span>
+                  <span style="display: block; font-size: 9px; color: var(--color-ink-muted);">${currentRateLabel} (${years}yr): ${bank.rate.toFixed(2)}%</span>
                 </div>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--color-ink-muted); margin-left: 2px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </div>
@@ -1842,13 +1846,15 @@ function calculateTopThreeDetailsFD() {
   
   const calculated = list.map(item => {
     // Tenure-aware rate lookup
+    const tenureYr = String(Math.min(10, Math.max(1, Math.round(years))));
     let baseRate = item.headlineRate;
     if (item.tenureRates) {
       const keys = Object.keys(item.tenureRates).map(Number).sort((a,b) => a-b);
       const closest = keys.reduce((prev, cur) => Math.abs(cur - years) < Math.abs(prev - years) ? cur : prev);
       baseRate = item.tenureRates[String(closest)];
     }
-    const rate = isSenior ? baseRate + (item.seniorBonus || 0.5) : baseRate;
+    const computedSeniorRate = baseRate + (item.seniorBonus || 0.5);
+    const rate = isSenior ? computedSeniorRate : baseRate;
 
     const maturityValVal = amount * Math.pow(1 + (rate/100) / 4, 4 * years);
     const interestEarned = maturityValVal - amount;
@@ -1864,6 +1870,8 @@ function calculateTopThreeDetailsFD() {
     
     return {
       ...item,
+      computedBaseRate: baseRate,
+      computedSeniorRate,
       rate,
       interestEarned,
       tds,
@@ -1916,10 +1924,11 @@ window.openComparisonTable = function(categoryId) {
   
   if (categoryId === 'fd') {
     const rawDetails = calculateTopThreeDetailsFD();
+    const years = AppState.prefills.tenure || 3;
     
     html += `
       <p style="font-size: 13px; color: var(--color-ink-secondary); margin-bottom: 16px; line-height: 1.5;">
-        All available Fixed Deposits ranked by net post-tax yield (highest yield to lowest). Click any row to view full maturity details.
+        All available Fixed Deposits for <strong>${years} Year(s)</strong> ranked by net post-tax yield (highest yield to lowest). Click any row to view full maturity details.
       </p>
       <table class="compare-table">
         <thead>
@@ -1927,8 +1936,8 @@ window.openComparisonTable = function(categoryId) {
             <th style="text-align: center; width: 50px;">Rank</th>
             <th>Institution</th>
             <th>Type</th>
-            <th>Base Rate</th>
-            <th>Senior Rate</th>
+            <th>Base Rate (${years}yr)</th>
+            <th>Senior Rate (${years}yr)</th>
             <th>Effective Yield (Net)</th>
             <th>Insured (DICGC)</th>
           </tr>
@@ -1941,8 +1950,8 @@ window.openComparisonTable = function(categoryId) {
           <td style="font-weight: bold; text-align: center;">${idx + 1}</td>
           <td><strong>${item.bankName}</strong></td>
           <td>${item.category}</td>
-          <td>${item.headlineRate.toFixed(2)}%</td>
-          <td>${item.seniorRate.toFixed(2)}%</td>
+          <td>${item.computedBaseRate.toFixed(2)}%</td>
+          <td>${item.computedSeniorRate.toFixed(2)}%</td>
           <td style="font-weight: 600; color: var(--color-success);">${item.effectiveYield.toFixed(2)}%</td>
           <td>${item.dicgcProtected ? 'Yes (₹5 L)' : 'No'}</td>
         </tr>
@@ -2044,11 +2053,12 @@ function closeDrawers() {
   compareOverlay.classList.remove('active');
   compareModal.classList.remove('active');
 
+  // Prevent race conditions: only hide if it hasn't been reopened
   setTimeout(() => {
-    drawerOverlay.style.display = 'none';
-    drawer.style.display = 'none';
-    compareOverlay.style.display = 'none';
-    compareModal.style.display = 'none';
+    if (!drawerOverlay.classList.contains('active')) drawerOverlay.style.display = 'none';
+    if (!drawer.classList.contains('active')) drawer.style.display = 'none';
+    if (!compareOverlay.classList.contains('active')) compareOverlay.style.display = 'none';
+    if (!compareModal.classList.contains('active')) compareModal.style.display = 'none';
   }, 300);
 }
 
