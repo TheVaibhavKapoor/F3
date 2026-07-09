@@ -107,8 +107,10 @@ button, input, select, textarea {
   flex-direction: column;
   border-right: 2.5px solid var(--color-ink-primary);
   flex-shrink: 0;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
   height: 100vh;
   z-index: 100;
   box-shadow: 4px 0 16px rgba(11,19,43,0.05);
@@ -307,6 +309,7 @@ button, input, select, textarea {
   padding: 40px 24px;
   background-color: var(--color-paper-base);
   width: calc(100% - 280px);
+  margin-left: 280px;
   overflow-x: hidden;
 }
 
@@ -331,6 +334,7 @@ button, input, select, textarea {
   .main-content-wrapper {
     width: 100%;
     padding: 24px 16px;
+    margin-left: 0;
     margin-top: 60px; /* spacing for mobile nav bar */
   }
   .mobile-nav-bar {
@@ -1334,6 +1338,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   right: 0;
   width: 360px;
   height: 500px;
+  max-height: calc(100vh - 120px);
   background-color: #ffffff;
   border: 2.5px solid var(--color-ink-primary);
   border-radius: var(--radius-lg);
@@ -1357,6 +1362,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   pointer-events: none;
 }
 .chatbot-header {
+  flex-shrink: 0;
   background-color: var(--color-ink-primary);
   color: #ffffff;
   padding: 14px 16px;
@@ -1407,6 +1413,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .chatbot-messages {
   flex-grow: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -1439,6 +1446,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--color-ink-primary);
 }
 .chatbot-quick-replies {
+  flex-shrink: 0;
   padding: 8px 12px;
   display: flex;
   flex-wrap: wrap;
@@ -1464,6 +1472,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .chatbot-input-form {
   display: flex;
+  flex-shrink: 0;
   border-top: 2px solid var(--color-ink-primary);
   background-color: #ffffff;
 }
@@ -1520,8 +1529,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 @media (max-width: 480px) {
   .chatbot-window {
-    width: 320px;
+    width: calc(100vw - 32px);
     height: 420px;
+    max-height: calc(100vh - 100px);
   }
 }
 
