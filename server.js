@@ -163,7 +163,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Launch Server
-app.listen(PORT, () => {
-  console.log(`[F3 SERVER] Backend running at http://localhost:${PORT}`);
-});
+// Export for Vercel serverless functions
+module.exports = app;
+
+// Launch Server only in local development (not on Vercel)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[F3 SERVER] Backend running at http://localhost:${PORT}`);
+  });
+}
