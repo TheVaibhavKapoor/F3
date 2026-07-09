@@ -2253,7 +2253,7 @@ window.sendOTP = async function(type) {
   })
   .catch(err => {
     console.warn("Backend OTP send failed. Triggering sandbox fallback:", err.message);
-    const sandboxCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const sandboxCode = Math.floor(100000 + Math.random() * 900000).toString();
     localStorage.setItem('f3_sandbox_otp', sandboxCode);
     showSandboxNotification(
       type === 'email' ? "Email Inbox (F³)" : "SMS Push Notification", 
@@ -2267,14 +2267,16 @@ function showOTPVerifyScreen(type, value) {
   body.innerHTML = `
     <div style="text-align: center; margin-bottom: 20px;">
       <h3 style="margin-bottom: 8px;">Enter Verification Code</h3>
-      <p style="font-size: 13px; color: var(--color-ink-secondary);">We've sent a 4-digit code to <strong>${value}</strong></p>
+      <p style="font-size: 13px; color: var(--color-ink-secondary);">We've sent a 6-digit code to <strong>${value}</strong></p>
     </div>
     
     <div class="otp-inputs">
       <input type="text" maxlength="1" class="otp-digit" id="otp-1" onkeyup="moveOTPFocus(1, 2, event)">
       <input type="text" maxlength="1" class="otp-digit" id="otp-2" onkeyup="moveOTPFocus(2, 3, event)">
       <input type="text" maxlength="1" class="otp-digit" id="otp-3" onkeyup="moveOTPFocus(3, 4, event)">
-      <input type="text" maxlength="1" class="otp-digit" id="otp-4" onkeyup="moveOTPFocus(4, null, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-4" onkeyup="moveOTPFocus(4, 5, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-5" onkeyup="moveOTPFocus(5, 6, event)">
+      <input type="text" maxlength="1" class="otp-digit" id="otp-6" onkeyup="moveOTPFocus(6, null, event)">
     </div>
     
     <div style="text-align: center; margin-top: 16px;">
@@ -2303,10 +2305,12 @@ window.verifyOTP = async function(type, identifier) {
   const digit2 = document.getElementById('otp-2').value;
   const digit3 = document.getElementById('otp-3').value;
   const digit4 = document.getElementById('otp-4').value;
+  const digit5 = document.getElementById('otp-5').value;
+  const digit6 = document.getElementById('otp-6').value;
   
-  const enteredCode = `${digit1}${digit2}${digit3}${digit4}`;
-  if (enteredCode.length !== 4) {
-    alert("Please enter the 4-digit code.");
+  const enteredCode = `${digit1}${digit2}${digit3}${digit4}${digit5}${digit6}`;
+  if (enteredCode.length !== 6) {
+    alert("Please enter the 6-digit code.");
     return;
   }
   
@@ -2327,7 +2331,7 @@ window.verifyOTP = async function(type, identifier) {
   .catch(err => {
     console.warn("Backend verification failed. Checking sandbox fallback:", err.message);
     const sandboxOtp = localStorage.getItem('f3_sandbox_otp');
-    if (enteredCode === sandboxOtp || enteredCode === '1234') {
+    if (enteredCode === sandboxOtp || enteredCode === '123456') {
       let name = identifier.split('@')[0];
       if (type === 'phone') name = `User ${identifier.slice(-4)}`;
       loginUser({
