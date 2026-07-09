@@ -64,12 +64,12 @@ const AppState = {
 // Supabase & Authentication Global Instances
 let supabase = null;
 function initSupabase() {
-  const url = localStorage.getItem('f3_supabase_url');
-  const key = localStorage.getItem('f3_supabase_key');
+  const url = localStorage.getItem('f3_supabase_url') || 'https://ihjchrkjhlejofdjiams.supabase.co';
+  const key = localStorage.getItem('f3_supabase_key') || 'sb_publishable_SaJDLxtk7doLlBMD5tHwyg_FTVp3Qbp';
   if (url && key && window.supabase) {
     try {
       supabase = window.supabase.createClient(url, key);
-      console.log("[F3 AUTH] Real Supabase Client initialized successfully.");
+      console.log("[F3 AUTH] Real Supabase Client initialized successfully with active backend database.");
     } catch (e) {
       console.error("[F3 AUTH] Failed to initialize Supabase client:", e);
     }
@@ -2137,8 +2137,8 @@ window.renderAuthModalTab = function(tabName) {
     
   } else if (tabName === 'settings') {
     const currentGoogleClientId = localStorage.getItem('f3_google_client_id') || '246759667299-eiocjbu5p9cfqk0osv840tvbvqrivajs.apps.googleusercontent.com';
-    const currentSupaUrl = localStorage.getItem('f3_supabase_url') || '';
-    const currentSupaKey = localStorage.getItem('f3_supabase_key') || '';
+    const currentSupaUrl = localStorage.getItem('f3_supabase_url') || 'https://ihjchrkjhlejofdjiams.supabase.co';
+    const currentSupaKey = localStorage.getItem('f3_supabase_key') || 'sb_publishable_SaJDLxtk7doLlBMD5tHwyg_FTVp3Qbp';
     const statusText = supabase ? '<span style="color:var(--color-success);">🟢 Active Supabase Client</span>' : '⚪ Sandbox Mock Mode';
     
     body.innerHTML = `
